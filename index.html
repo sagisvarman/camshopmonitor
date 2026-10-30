@@ -71,7 +71,7 @@ button{cursor:pointer}
 .seg button:last-child{border-right:0}
 .seg button[aria-pressed=true]{background:var(--wash);color:#fff;font-weight:700}
 .dates{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-input[type=date],input[type=text],input[type=email],input[type=password],input[type=search],select{
+input[type=date],input[type=text],input[type=email],input[type=password],input[type=search],input[type=number],select{
   background:#fff;border:1px solid #b5b5b5;border-radius:3px;padding:6px 8px;min-width:0}
 .status{margin:10px 0 0;font-size:12px;color:var(--muted)}
 .status.warn{color:var(--warn)}
@@ -299,6 +299,9 @@ const REQUIRE_LOGIN = true;
 /* Printed at the top of the Weekly report tab's printable sheet. */
 const SHOP_NAME = 'Shop name';
 
+/* Shown before amounts on the Collection tab. */
+const CURRENCY = 'Rp';
+
 const ALLOWED_SOURCES = ['overlay', 'emulator'];
 const MAX_DAYS = 60;
 const STALE_HOURS = 6;
@@ -324,7 +327,7 @@ const I18N = {
       record: ['record', 'records'], visit: ['visit', 'visits'], arrival: ['arrival', 'arrivals'], wash: ['wash', 'washes'] },
     reasons: {},
     tabs: { summary: 'Summary', visits: 'Visit log', timeline: 'Timeline', hours: 'Busy hours', durations: 'Stay times',
-      zones: 'Zones', feeds: 'Feeds', now: 'Present now', weekly: 'Weekly report' },
+      zones: 'Zones', feeds: 'Feeds', now: 'Present now', weekly: 'Weekly report', collection: 'Collection' },
     stayBuckets: ['under 3m', '3 to 5m', '5 to 8m', '8 to 12m', '12 to 20m', '20 to 40m', '40m or more'],
 
     /* page text, by data-i18n and data-i18n-label */
@@ -434,6 +437,11 @@ const I18N = {
     pdfSaved: f => `Saved "${f}" to your downloads.`, pdfFailed: msg => `Could not make the PDF: ${msg}. Try Print instead.`,
     printHint: 'Or press Ctrl+P. For a PDF file, use Download PDF on the report page.',
 
+    /* collection */
+    locale: 'en-US', pricePerWash: 'Price per wash', bikesServed: 'Bikes served', totalCollection: 'Total collection', total: 'Total',
+    setPrice: 'Enter the price per wash above to see the collection.',
+    collectionNote: 'Bikes served counts every motorbike seen that day, on the wash mats or off them. Total collection is bikes served times the price per wash. The price is saved in this browser only.',
+
     /* sign-in */
     thisAccount: 'this account', signedIn: 'Signed in', enterEmailPw: 'Enter your email and password.',
     authNoMatch: 'That email and password do not match an account.',
@@ -452,7 +460,7 @@ const I18N = {
       record: ['catatan', 'catatan'], visit: ['kunjungan', 'kunjungan'], arrival: ['kedatangan', 'kedatangan'], wash: ['motor dicuci', 'motor dicuci'] },
     reasons: { detector_stopped: 'detektor berhenti', recovered: 'pemulihan' },
     tabs: { summary: 'Ringkasan', visits: 'Riwayat kunjungan', timeline: 'Linimasa', hours: 'Jam sibuk', durations: 'Durasi',
-      zones: 'Zona', feeds: 'Feed', now: 'Di lokasi sekarang', weekly: 'Laporan mingguan' },
+      zones: 'Zona', feeds: 'Feed', now: 'Di lokasi sekarang', weekly: 'Laporan mingguan', collection: 'Pendapatan' },
     stayBuckets: ['di bawah 3m', '3 sampai 5m', '5 sampai 8m', '8 sampai 12m', '12 sampai 20m', '20 sampai 40m', '40m atau lebih'],
 
     title: 'Laporan cuci motor', language: 'Bahasa',
@@ -550,6 +558,10 @@ const I18N = {
     makingPdf: 'Membuat PDF...', pdfLibFailed: 'alat PDF gagal dimuat (offline?)',
     pdfSaved: f => `"${f}" tersimpan di folder unduhan.`, pdfFailed: msg => `Gagal membuat PDF: ${msg}. Coba Cetak saja.`,
     printHint: 'Atau tekan Ctrl+P. Untuk file PDF, pakai Unduh PDF di halaman laporan.',
+
+    locale: 'id-ID', pricePerWash: 'Harga per cuci', bikesServed: 'Motor dilayani', totalCollection: 'Total pendapatan', total: 'Total',
+    setPrice: 'Isi harga per cuci di atas untuk melihat pendapatan.',
+    collectionNote: 'Motor dilayani menghitung setiap motor yang terlihat hari itu, di area cuci maupun di luarnya. Total pendapatan adalah motor dilayani dikali harga per cuci. Harga hanya tersimpan di browser ini.',
 
     thisAccount: 'akun ini', signedIn: 'Sudah masuk', enterEmailPw: 'Masukkan email dan kata sandi.',
     authNoMatch: 'Email dan kata sandi tidak cocok dengan akun mana pun.',
@@ -885,12 +897,17 @@ function demoDay(key) {
 /* ------------------------------------------------------------------ */
 /* State                                                               */
 /* ------------------------------------------------------------------ */
+/* The Collection tab's price per wash is kept in this browser only: the
+   page never writes to Firestore. */
+const PRICE_KEY = 'washReportPrice';
+function savedPrice() { try { return localStorage.getItem(PRICE_KEY) || ''; } catch (e) { return ''; } }
+
 const state = {
   preset: '7', customStart: '', customEnd: '', keys: [], rangeText: '', loadSeq: 0, lastLoad: null,
   tab: 'summary',
   v: { feed: '', source: '', zone: '', washOnly: false, q: '', sort: 'in', dir: 'desc', limit: PAGE_SIZE, open: new Set() },
   tl: { day: '' }, dur: { washOnly: false, skipFlagged: false }, zn: { byFeed: false },
-  wk: { start: '' }
+  wk: { start: '' }, col: { price: savedPrice() }
 };
 let charts = [];
 
@@ -974,7 +991,7 @@ const yInt = { beginAtZero: true, ticks: { precision: 0 } };
 /* ------------------------------------------------------------------ */
 /* Rendering                                                           */
 /* ------------------------------------------------------------------ */
-const TABS = ['summary', 'visits', 'timeline', 'hours', 'durations', 'zones', 'feeds', 'now', 'weekly'];
+const TABS = ['summary', 'visits', 'timeline', 'hours', 'durations', 'zones', 'feeds', 'now', 'weekly', 'collection'];
 
 function buildTabs() {
   $('#tabs').innerHTML = TABS.map(id =>
@@ -987,7 +1004,7 @@ const noData = () => emptyBox(T.noBikes, T.noBikesText(state.rangeText));
 function renderPanel() {
   destroyCharts();
   document.body.classList.toggle('wk-mode', state.tab === 'weekly');
-  const fn = { summary: rSummary, visits: rVisits, timeline: rTimeline, hours: rHours, durations: rDurations, zones: rZones, feeds: rFeeds, now: rNow, weekly: rWeekly }[state.tab];
+  const fn = { summary: rSummary, visits: rVisits, timeline: rTimeline, hours: rHours, durations: rDurations, zones: rZones, feeds: rFeeds, now: rNow, weekly: rWeekly, collection: rCollection }[state.tab];
   fn();
 }
 
@@ -1510,6 +1527,32 @@ function printWeekly() {
     <body class="wk-mode"><div class="wrap"><div class="wk-bar no-print"><button class="btn primary" type="button" onclick="window.print()">${T.print}</button>
     <span>${T.printHint}</span></div>${compactSheet().outerHTML}</div></body></html>`);
   w.document.close();
+}
+
+/* ---- 10. Collection ---- */
+/* Bikes served each day in the range, times the price per wash. */
+const fmtMoney = v => `${CURRENCY} ${v.toLocaleString(T.locale, { maximumFractionDigits: 2 })}`;
+function rCollection() {
+  $('#panel').innerHTML = `
+    <div class="filters"><label>${T.pricePerWash} (${esc(CURRENCY)}) <input type="number" id="cPrice" min="0" step="any" inputmode="decimal" style="width:130px" value="${esc(state.col.price)}"></label></div>
+    <div id="colBody"></div>`;
+  $('#cPrice').oninput = e => {
+    state.col.price = e.target.value;
+    try { localStorage.setItem(PRICE_KEY, state.col.price); } catch (err) { /* storage blocked */ }
+    fillCollection();
+  };
+  fillCollection();
+}
+function fillCollection() {
+  const rows = dayRows(), price = parseFloat(state.col.price), priced = isFinite(price) && price >= 0;
+  const money = n => priced ? fmtMoney(n * price) : '-';
+  const total = sum(rows.map(r => r.n));
+  $('#colBody').innerHTML = `${priced ? '' : `<p class="note">${T.setPrice}</p>`}
+    <div class="tw"><table class="num"><thead><tr><th>${T.cols.date}</th><th class="r">${T.bikesServed}</th><th class="r">${T.totalCollection}</th></tr></thead><tbody>
+      ${rows.map(r => `<tr class="${r.n ? '' : 'dim'}"><td>${esc(keyLabel(r.key))}</td><td class="r">${r.n}</td><td class="r">${money(r.n)}</td></tr>`).join('')}
+      <tr><td><b>${T.total}</b></td><td class="r"><b>${total}</b></td><td class="r"><b>${money(total)}</b></td></tr>
+    </tbody></table></div>
+    <p class="count" style="margin-top:8px">${T.collectionNote}</p>`;
 }
 
 /* ------------------------------------------------------------------ */
