@@ -437,10 +437,10 @@ const I18N = {
     pdfSaved: f => `Saved "${f}" to your downloads.`, pdfFailed: msg => `Could not make the PDF: ${msg}. Try Print instead.`,
     printHint: 'Or press Ctrl+P. For a PDF file, use Download PDF on the report page.',
 
-    /* collection, in the weekly report */
-    locale: 'en-US', collection: 'Collection', pricePerWash: 'Price per wash', bikesServed: 'Bikes served', totalCollection: 'Total collection',
+    /* collection column in the weekly report's day-by-day table */
+    locale: 'en-US', collection: 'Collection', pricePerWash: 'Price per wash',
     setPrice: 'Enter the price per wash above to add the collection to the report. The price is saved in this browser only.',
-    collectionNote: price => `Price per wash: ${price}. Bikes served counts every motorbike seen that day, on the wash mats or off them.`,
+    collectionNote: price => `Collection = bikes × ${price} per wash. The bike count includes every motorbike seen that day, on the wash mats or off them.`,
 
     /* sign-in */
     thisAccount: 'this account', signedIn: 'Signed in', enterEmailPw: 'Enter your email and password.',
@@ -559,9 +559,9 @@ const I18N = {
     pdfSaved: f => `"${f}" tersimpan di folder unduhan.`, pdfFailed: msg => `Gagal membuat PDF: ${msg}. Coba Cetak saja.`,
     printHint: 'Atau tekan Ctrl+P. Untuk file PDF, pakai Unduh PDF di halaman laporan.',
 
-    locale: 'id-ID', collection: 'Pendapatan', pricePerWash: 'Harga per cuci', bikesServed: 'Motor dilayani', totalCollection: 'Total pendapatan',
+    locale: 'id-ID', collection: 'Pendapatan', pricePerWash: 'Harga per cuci',
     setPrice: 'Isi harga per cuci di atas untuk menambahkan pendapatan ke laporan. Harga hanya tersimpan di browser ini.',
-    collectionNote: price => `Harga per cuci: ${price}. Motor dilayani menghitung setiap motor yang terlihat hari itu, di area cuci maupun di luarnya.`,
+    collectionNote: price => `Pendapatan = motor × ${price} per cuci. Jumlah motor mencakup setiap motor yang terlihat hari itu, di area cuci maupun di luarnya.`,
 
     thisAccount: 'akun ini', signedIn: 'Sudah masuk', enterEmailPw: 'Masukkan email dan kata sandi.',
     authNoMatch: 'Email dan kata sandi tidak cocok dengan akun mana pun.',
@@ -1460,16 +1460,11 @@ function fillWeekly(keys, prevKeys) {
         <div class="sh-legend"><span>${T.oncePerDay}</span></div></section>
     </div>
     <section class="sh-box"><h3>${T.dayByDay}</h3><table class="num">
-      <thead><tr><th>${T.day}</th><th class="r">${T.bikes}</th><th class="r">${T.avgStayShort}</th><th class="r">${T.median}</th><th class="r">${T.firstIn}</th><th class="r">${T.lastOut}</th></tr></thead>
+      <thead><tr><th>${T.day}</th><th class="r">${T.bikes}</th><th class="r">${T.avgStayShort}</th><th class="r">${T.median}</th><th class="r">${T.firstIn}</th><th class="r">${T.lastOut}</th>${priced ? `<th class="r">${T.collection}</th>` : ''}</tr></thead>
       <tbody>${rows.map(r => `<tr class="${r.n ? '' : 'dim'}"><td>${esc(keyLabel(r.key))}</td><td class="r">${r.n}</td>
-        <td class="r">${fmtDur(r.avg)}</td><td class="r">${fmtDur(r.med)}</td><td class="r">${fmtHM(r.first)}</td><td class="r">${fmtHM(r.last)}</td></tr>`).join('')}
-        <tr><td><b>${T.week}</b></td><td class="r"><b>${bikes.length}</b></td><td colspan="4"></td></tr>
-      </tbody></table></section>
-    ${priced ? `<section class="sh-box"><h3>${T.collection}</h3><table class="num">
-      <thead><tr><th>${T.cols.date}</th><th class="r">${T.bikesServed}</th><th class="r">${T.totalCollection}</th></tr></thead>
-      <tbody>${rows.map(r => `<tr class="${r.n ? '' : 'dim'}"><td>${esc(keyLabel(r.key))}</td><td class="r">${r.n}</td><td class="r">${fmtMoney(r.n * price)}</td></tr>`).join('')}
-        <tr><td><b>${T.week}</b></td><td class="r"><b>${bikes.length}</b></td><td class="r"><b>${fmtMoney(bikes.length * price)}</b></td></tr>
-      </tbody></table><div class="sh-legend"><span>${esc(T.collectionNote(fmtMoney(price)))}</span></div></section>` : ''}
+        <td class="r">${fmtDur(r.avg)}</td><td class="r">${fmtDur(r.med)}</td><td class="r">${fmtHM(r.first)}</td><td class="r">${fmtHM(r.last)}</td>${priced ? `<td class="r">${fmtMoney(r.n * price)}</td>` : ''}</tr>`).join('')}
+        <tr><td><b>${T.week}</b></td><td class="r"><b>${bikes.length}</b></td><td colspan="4"></td>${priced ? `<td class="r"><b>${fmtMoney(bikes.length * price)}</b></td>` : ''}</tr>
+      </tbody></table>${priced ? `<div class="sh-legend"><span>${esc(T.collectionNote(fmtMoney(price)))}</span></div>` : ''}</section>
     <section class="sh-box"><h3>${T.howLongWashes}</h3><div class="hbars num">${buckets.map(([label, c]) =>
       `<span>${esc(label)}</span><div class="bar" style="width:${c / maxBucket * 100}%"></div><b>${c}</b>`).join('')}</div></section>
     ${foot}
