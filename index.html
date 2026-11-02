@@ -18,9 +18,7 @@ DEMO MODE
 
 DATA
  - Reads only track_visits/{DD-MM-YYYY}/vehicles and zone_status/{DD-MM-YYYY}/zones,
-   only where source is "overlay" or "emulator". Never writes, except the
-   sample-data buttons in the controls bar (they only touch
-   documents whose session_id ends in "_sample").
+   only where source is "overlay" or "emulator". Never writes.
  - Date documents do not exist, so every date key in the range is built and read
    directly (max 60 days). Results are cached in memory until you press Refresh.
  - Times shown are time_str values as stored (shop local time, no conversion).
@@ -274,10 +272,6 @@ body.wk-mode #presets,body.wk-mode #customDates{display:none!important}
       <button class="btn" id="applyRange" type="button" data-i18n="apply">Apply</button>
     </div>
     <button class="btn" id="refresh" type="button" data-i18n="refresh">Refresh</button>
-    <span id="seedBox" style="display:inline-flex;gap:6px">
-      <button class="btn primary" id="seedUp" type="button">Upload sample data</button>
-      <button class="btn" id="seedDel" type="button">Delete sample data</button>
-    </span>
   </section>
   <p class="status" id="status" role="status"></p>
 
@@ -333,7 +327,7 @@ const I18N = {
       record: ['record', 'records'], visit: ['visit', 'visits'], arrival: ['arrival', 'arrivals'], wash: ['wash', 'washes'] },
     reasons: {},
     tabs: { summary: 'Summary', visits: 'Visit log', timeline: 'Timeline', hours: 'Busy hours', durations: 'Stay times',
-      zones: 'Zones', feeds: 'Feeds', now: 'Present now', weekly: 'Weekly report' },
+      zones: 'Zones', feeds: 'Feeds', now: 'Present now', weekly: 'Report' },
     stayBuckets: ['under 3m', '3 to 5m', '5 to 8m', '8 to 12m', '12 to 20m', '20 to 40m', '40m or more'],
 
     /* page text, by data-i18n and data-i18n-label */
@@ -422,23 +416,24 @@ const I18N = {
     noneHere: 'No bikes present', noneHereText: 'Nothing is marked present right now.',
 
     /* weekly report */
-    week: 'Week', thisWeek: span => `This week (${span})`, lastWeek: span => `Last week (${span})`,
+    generate: 'Generate', lastWeekBtn: 'Last week', thisWeekBtn: 'This week', totalRow: 'Total',
+    needDatesReport: 'Choose a start and an end date, then press Generate.',
     downloadPdf: 'Download PDF', print: 'Print', fetchingWeek: w => `Fetching ${w}.`,
-    weeklyStatus: (st, src) => `Weekly report: read ${plural(st.read, 'day')} (${plural(st.docs, 'document')}) from ${src}; ${st.cached} from the session cache.`,
-    weeklyTitle: 'Weekly wash report', sampleNotReal: 'sample data, not real records', generated: 'Generated',
+    weeklyStatus: (st, src) => `Report: read ${plural(st.read, 'day')} (${plural(st.docs, 'document')}) from ${src}; ${st.cached} from the session cache.`,
+    weeklyTitle: 'Wash report', sampleNotReal: 'sample data, not real records', generated: 'Generated',
     weeklyFoot: "Totals count every motorbike detected, on the wash mats or off them. Times are the shop's local time. Stay and wash times use finished visits only.",
-    weekEmpty: 'No motorbikes were recorded in this week.',
-    noPrevWeek: 'No data for the week before', samePrevWeek: 'Same as the week before',
-    vsPrevWeek: (d, pct) => `${d} vs the week before (${pct}%)`,
+    weekEmpty: 'No motorbikes were recorded in this period.',
+    noPrevWeek: 'No data for the period before', samePrevWeek: 'Same as the period before',
+    vsPrevWeek: (d, pct) => `${d} vs the period before (${pct}%)`,
     weekFlagged: n => `${plural(n, 'visit')} ${n === 1 ? 'was' : 'were'} closed after a detector stop, so ${n === 1 ? 'its' : 'their'} stay may be shorter than it really was.`,
     weekNoOut: n => `${plural(n, 'bike')} had no departure recorded; ${n === 1 ? 'its' : 'their'} stay is left out of the times.`,
     totalWashes: 'Total washes', typicalWash: 'Typical wash time (median)', averageX: d => `Average ${d}`,
     busiestDay: 'Busiest day', noWashes: 'No washes', busiestHour: 'Busiest hour',
     inThatHour: n => `${plural(n, 'arrival')} in that hour`, noArrivals: 'No arrivals',
-    daysOf7: n => `${n} of 7`, daysWithBikes: 'Days with bikes', monToSun: 'Monday to Sunday',
+    daysOfN: (n, total) => `${n} of ${total}`, daysWithBikes: 'Days with bikes',
     dayTotalNote: "Number on top is the day's total.", arrivalsByHour: 'Arrivals by hour',
     oncePerDay: 'Each bike counts once per day, at its first arrival.', dayByDay: 'Day by day',
-    howLongWashes: 'How long washes take', weeklyFile: 'weekly report',
+    howLongWashes: 'How long washes take', weeklyFile: 'report',
     makingPdf: 'Making PDF...', pdfLibFailed: 'the PDF tool did not load (offline?)',
     pdfSaved: f => `Saved "${f}" to your downloads.`, pdfFailed: msg => `Could not make the PDF: ${msg}. Try Print instead.`,
     printHint: 'Or press Ctrl+P. For a PDF file, use Download PDF on the report page.',
@@ -466,7 +461,7 @@ const I18N = {
       record: ['catatan', 'catatan'], visit: ['kunjungan', 'kunjungan'], arrival: ['kedatangan', 'kedatangan'], wash: ['motor dicuci', 'motor dicuci'] },
     reasons: { detector_stopped: 'detektor berhenti', recovered: 'pemulihan' },
     tabs: { summary: 'Ringkasan', visits: 'Riwayat kunjungan', timeline: 'Linimasa', hours: 'Jam sibuk', durations: 'Durasi',
-      zones: 'Zona', feeds: 'Feed', now: 'Di lokasi sekarang', weekly: 'Laporan mingguan' },
+      zones: 'Zona', feeds: 'Feed', now: 'Di lokasi sekarang', weekly: 'Laporan' },
     stayBuckets: ['di bawah 3m', '3 sampai 5m', '5 sampai 8m', '8 sampai 12m', '12 sampai 20m', '20 sampai 40m', '40m atau lebih'],
 
     title: 'Laporan cuci motor', language: 'Bahasa',
@@ -544,23 +539,24 @@ const I18N = {
     nowSub: (key, h) => `Berdasarkan catatan hari ini (${key}). Motor yang tercatat di lokasi lebih dari ${h} jam ditampilkan terpisah karena detektor kemungkinan melewatkan kepergiannya.`,
     noneHere: 'Tidak ada motor di lokasi', noneHereText: 'Saat ini tidak ada motor yang tercatat di lokasi.',
 
-    week: 'Minggu', thisWeek: span => `Minggu ini (${span})`, lastWeek: span => `Minggu lalu (${span})`,
+    generate: 'Buat laporan', lastWeekBtn: 'Minggu lalu', thisWeekBtn: 'Minggu ini', totalRow: 'Total',
+    needDatesReport: 'Pilih tanggal mulai dan tanggal akhir, lalu tekan Buat laporan.',
     downloadPdf: 'Unduh PDF', print: 'Cetak', fetchingWeek: w => `Mengambil ${w}.`,
-    weeklyStatus: (st, src) => `Laporan mingguan: membaca ${st.read} hari (${st.docs} dokumen) dari ${src}; ${st.cached} dari cache sesi.`,
-    weeklyTitle: 'Laporan cuci motor mingguan', sampleNotReal: 'data contoh, bukan catatan asli', generated: 'Dibuat',
+    weeklyStatus: (st, src) => `Laporan: membaca ${st.read} hari (${st.docs} dokumen) dari ${src}; ${st.cached} dari cache sesi.`,
+    weeklyTitle: 'Laporan cuci motor', sampleNotReal: 'data contoh, bukan catatan asli', generated: 'Dibuat',
     weeklyFoot: 'Total menghitung semua motor yang terdeteksi, di area cuci maupun di luarnya. Waktu memakai jam lokal toko. Durasi dan waktu cuci hanya memakai kunjungan yang sudah selesai.',
-    weekEmpty: 'Tidak ada motor tercatat pada minggu ini.',
-    noPrevWeek: 'Tidak ada data minggu sebelumnya', samePrevWeek: 'Sama dengan minggu sebelumnya',
-    vsPrevWeek: (d, pct) => `${d} dibanding minggu sebelumnya (${pct}%)`,
+    weekEmpty: 'Tidak ada motor tercatat pada periode ini.',
+    noPrevWeek: 'Tidak ada data periode sebelumnya', samePrevWeek: 'Sama dengan periode sebelumnya',
+    vsPrevWeek: (d, pct) => `${d} dibanding periode sebelumnya (${pct}%)`,
     weekFlagged: n => `${n} kunjungan ditutup setelah detektor berhenti, jadi durasinya mungkin lebih pendek dari yang sebenarnya.`,
     weekNoOut: n => `${n} motor tidak punya catatan kepergian; durasinya tidak dihitung.`,
     totalWashes: 'Total cuci', typicalWash: 'Waktu cuci umum (median)', averageX: d => `Rata-rata ${d}`,
     busiestDay: 'Hari tersibuk', noWashes: 'Tidak ada yang dicuci', busiestHour: 'Jam tersibuk',
     inThatHour: n => `${n} kedatangan pada jam itu`, noArrivals: 'Tidak ada kedatangan',
-    daysOf7: n => `${n} dari 7`, daysWithBikes: 'Hari dengan motor', monToSun: 'Senin sampai Minggu',
+    daysOfN: (n, total) => `${n} dari ${total}`, daysWithBikes: 'Hari dengan motor',
     dayTotalNote: 'Angka di atas adalah total hari itu.', arrivalsByHour: 'Kedatangan per jam',
     oncePerDay: 'Setiap motor dihitung sekali per hari, saat pertama datang.', dayByDay: 'Per hari',
-    howLongWashes: 'Lama waktu cuci', weeklyFile: 'laporan mingguan',
+    howLongWashes: 'Lama waktu cuci', weeklyFile: 'laporan',
     makingPdf: 'Membuat PDF...', pdfLibFailed: 'alat PDF gagal dimuat (offline?)',
     pdfSaved: f => `"${f}" tersimpan di folder unduhan.`, pdfFailed: msg => `Gagal membuat PDF: ${msg}. Coba Cetak saja.`,
     printHint: 'Atau tekan Ctrl+P. Untuk file PDF, pakai Unduh PDF di halaman laporan.',
@@ -913,7 +909,7 @@ const state = {
   tab: 'summary',
   v: { feed: '', source: '', zone: '', washOnly: false, q: '', sort: 'in', dir: 'desc', limit: PAGE_SIZE, open: new Set() },
   tl: { day: '' }, dur: { washOnly: false, skipFlagged: false }, zn: { byFeed: false },
-  wk: { start: '' }, col: { price: savedPrice() }
+  wk: { from: '', to: '' }, col: { price: savedPrice() }
 };
 let charts = [];
 
@@ -1354,34 +1350,56 @@ async function rNow() {
 }
 
 /* ---- 9. Weekly report (printable) ---- */
-/* Monday to Sunday, independent of the range picker; the week before is
-   loaded too, for the comparison. Printing hides everything but .sheet. */
+/* Any From/To date range (max MAX_DAYS), independent of the range picker; the
+   same number of days just before it is loaded too, for the comparison.
+   Printing hides everything but .sheet. */
 const mondayOf = d => addDays(d, -((d.getDay() + 6) % 7));
 const fmtDM = d => `${d.getDate()} ${T.months[d.getMonth()]}`;
-const weekText = s => { const e = addDays(s, 6); return `${T.weekdays[1]} ${fmtDM(s)} ${T.to} ${T.weekdays[0]} ${fmtDM(e)} ${e.getFullYear()}`; };
-const weekStarts = () => { const m = mondayOf(todayDate()); return Array.from({ length: 8 }, (_, i) => addDays(m, -7 * i)); };
+const fmtWD = d => `${T.weekdays[d.getDay()]} ${fmtDM(d)}`;
+const rangeText = (a, b) => a.getFullYear() === b.getFullYear()
+  ? `${fmtWD(a)} ${T.to} ${fmtWD(b)} ${b.getFullYear()}`
+  : `${fmtWD(a)} ${a.getFullYear()} ${T.to} ${fmtWD(b)} ${b.getFullYear()}`;
+const lastWeekRange = () => { const m = mondayOf(todayDate()); return [addDays(m, -7), addDays(m, -1)]; };
+const thisWeekRange = () => [mondayOf(todayDate()), todayDate()];
+function wkCheck(a, b) {
+  if (!a || !b) return T.needDatesReport;
+  const x = isoToDate(a), y = isoToDate(b);
+  if (x > y) return T.startAfterEnd;
+  const days = Math.round((y - x) / 864e5) + 1;
+  return days > MAX_DAYS ? T.tooManyDays(MAX_DAYS, days) : '';
+}
 const bikesIn = keys => keys.flatMap(k => (cache.get(k) || {}).bikes || []);
 const washWord = n => plural(n, 'wash');
 const fmtMoney = v => `${CURRENCY} ${v.toLocaleString(T.locale, { maximumFractionDigits: 2 })}`;
 
 async function rWeekly() {
-  const starts = weekStarts();
-  if (!state.wk.start) state.wk.start = dateToIso(starts[1]);
-  const startIso = state.wk.start, start = isoToDate(startIso);
-  const keys = keysBetween(start, addDays(start, 6)), prevKeys = keysBetween(addDays(start, -7), addDays(start, -1));
+  if (!state.wk.from) { const [x, y] = lastWeekRange(); state.wk.from = dateToIso(x); state.wk.to = dateToIso(y); }
+  const fromIso = state.wk.from, toIso = state.wk.to, from = isoToDate(fromIso), to = isoToDate(toIso);
+  const n = Math.round((to - from) / 864e5) + 1;
+  const keys = keysBetween(from, to), prevKeys = keysBetween(addDays(from, -n), addDays(from, -1));
   $('#panel').innerHTML = `
     <div class="wk-bar no-print">
-      <label>${T.week} <select id="wkSel">${starts.map((s, i) => {
-        const iso = dateToIso(s), e = addDays(s, 6), span = `${fmtDM(s)} ${T.to} ${fmtDM(e)} ${e.getFullYear()}`;
-        const name = i === 0 ? T.thisWeek(span) : i === 1 ? T.lastWeek(span) : span;
-        return `<option value="${iso}" ${iso === startIso ? 'selected' : ''}>${esc(name)}</option>`; }).join('')}</select></label>
+      <label>${T.fromDate} <input type="date" id="wkFrom" value="${fromIso}"></label>
+      <label>${T.toDate} <input type="date" id="wkTo" value="${toIso}"></label>
+      <button class="btn primary" id="wkGo" type="button">${T.generate}</button>
+      <button class="btn" id="wkLast" type="button">${T.lastWeekBtn}</button>
+      <button class="btn" id="wkThis" type="button">${T.thisWeekBtn}</button>
+    </div>
+    <div class="wk-bar no-print">
       <label>${T.pricePerWash} (${esc(CURRENCY)}) <input type="number" id="wkPrice" min="0" step="any" inputmode="decimal" style="width:130px" value="${esc(state.col.price)}"></label>
       <button class="btn primary" id="wkPdf" type="button" disabled>${T.downloadPdf}</button>
       <button class="btn" id="wkPrint" type="button" disabled>${T.print}</button>
     </div>
-    <div id="wkBody">${emptyBox(T.loading, T.fetchingWeek(weekText(start)))}</div>`;
+    <div id="wkBody">${emptyBox(T.loading, T.fetchingWeek(rangeText(from, to)))}</div>`;
   let loaded = false;
-  $('#wkSel').onchange = e => { state.wk.start = e.target.value; rWeekly(); };
+  const apply = (x, y) => {
+    const err = wkCheck(x, y);
+    if (err) { setStatus(err, 'warn'); return; }
+    state.wk.from = x; state.wk.to = y; rWeekly();
+  };
+  $('#wkGo').onclick = () => apply($('#wkFrom').value, $('#wkTo').value);
+  $('#wkLast').onclick = () => { const [x, y] = lastWeekRange(); apply(dateToIso(x), dateToIso(y)); };
+  $('#wkThis').onclick = () => { const [x, y] = thisWeekRange(); apply(dateToIso(x), dateToIso(y)); };
   $('#wkPrice').oninput = e => {
     state.col.price = e.target.value;
     try { localStorage.setItem(PRICE_KEY, state.col.price); } catch (err) { /* storage blocked */ }
@@ -1391,7 +1409,7 @@ async function rWeekly() {
   $('#wkPrint').onclick = printWeekly;
   try {
     const st = await loadDays([...prevKeys, ...keys]);
-    if (state.tab !== 'weekly' || state.wk.start !== startIso) return;
+    if (state.tab !== 'weekly' || state.wk.from !== fromIso || state.wk.to !== toIso) return;
     setStatus(T.weeklyStatus(st, dataSrc()));
   } catch (e) {
     if (state.tab === 'weekly') handleLoadError(e);
@@ -1402,14 +1420,14 @@ async function rWeekly() {
 }
 
 function fillWeekly(keys, prevKeys) {
-  const start = isoToDate(state.wk.start);
+  const from = isoToDate(state.wk.from), to = isoToDate(state.wk.to);
   const bikes = bikesIn(keys), prev = bikesIn(prevKeys), rows = dayRows(keys);
   const price = parseFloat(state.col.price), priced = isFinite(price) && price >= 0;
   const now = new Date();
   const generated = `${fmtDateShort(now)}, ${pad(now.getHours())}:${pad(now.getMinutes())}`;
   const head = `<header class="sh-head">
       <div><div class="sh-shop">${esc(SHOP_NAME)}</div><div class="sh-title">${T.weeklyTitle}${DEMO ? ` &middot; <b>${T.sampleNotReal}</b>` : ''}</div></div>
-      <div class="sh-meta"><b>${esc(weekText(start))}</b>${T.generated} ${esc(generated)}</div>
+      <div class="sh-meta"><b>${esc(rangeText(from, to))}</b>${T.generated} ${esc(generated)}</div>
     </header>`;
   const foot = `<p class="sh-foot">${T.weeklyFoot}</p>`;
   $('#wkPdf').disabled = false;
@@ -1436,9 +1454,15 @@ function fillWeekly(keys, prevKeys) {
   const hours = act.length ? Array.from({ length: act[act.length - 1] - act[0] + 1 }, (_, i) => act[0] + i) : [];
 
   const maxDay = Math.max(1, ...rows.map(r => r.n)), maxHour = Math.max(1, ...byHour);
-  const dayBars = rows.map(r => `<div class="vbar"><div class="plot"><div class="v">${r.n}</div>
+  /* Few days: full labels and values. More days: day numbers, then only some labels, then no values. */
+  const nd = rows.length;
+  const dayBars = rows.map((r, i) => {
+    const dn = String(keyParts(r.key).d);
+    const lbl = nd <= 10 ? keyLabel(r.key).split(' ').slice(0, 2).join(' ') : nd <= 16 ? dn : (i % 5 === 0 ? dn : '');
+    return `<div class="vbar"><div class="plot"><div class="v">${nd <= 16 ? r.n : ''}</div>
       <div class="w" style="height:${r.n / maxDay * 100}%"></div></div>
-      <div class="lbl">${esc(keyLabel(r.key).split(' ').slice(0, 2).join(' '))}</div></div>`).join('');
+      <div class="lbl"${nd > 16 ? ' style="overflow:visible;margin:4px -14px 0"' : ''}>${lbl ? esc(lbl) : '&nbsp;'}</div></div>`;
+  }).join('');
   const hourBars = hours.map(h => `<div class="vbar"><div class="plot"><div class="v">${byHour[h] || ''}</div>
       <div class="w" style="height:${byHour[h] / maxHour * 100}%"></div></div><div class="lbl">${pad(h)}</div></div>`).join('');
 
@@ -1456,12 +1480,12 @@ function fillWeekly(keys, prevKeys) {
       <div><b>${fmtDur(median(washStays))}</b><span>${T.typicalWash}</span><small>${T.averageX(fmtDur(avg(washStays)))}</small></div>
       <div><b>${best ? esc(keyLabel(best.key)) : '-'}</b><span>${T.busiestDay}</span><small>${best ? washWord(best.n) : T.noWashes}</small></div>
       <div><b>${peak != null ? `${pad(peak)}:00` : '-'}</b><span>${T.busiestHour}</span><small>${peak != null ? T.inThatHour(byHour[peak]) : T.noArrivals}</small></div>
-      <div><b>${T.daysOf7(rows.filter(r => r.n).length)}</b><span>${T.daysWithBikes}</span><small>${T.monToSun}</small></div>
+      <div><b>${T.daysOfN(rows.filter(r => r.n).length, rows.length)}</b><span>${T.daysWithBikes}</span><small>${plural(rows.length, 'day')}</small></div>
     </section>
     ${notes.length ? `<div class="sh-notes">${notes.map(n => `<p>${esc(n)}</p>`).join('')}</div>` : ''}
     <div class="sh-grid">
-      <section class="sh-box"><h3>${T.washesPerDay}</h3><div class="vbars">${dayBars}</div>
-        <div class="sh-legend"><span>${T.dayTotalNote}</span></div></section>
+      <section class="sh-box"><h3>${T.washesPerDay}</h3><div class="vbars" style="gap:${nd > 16 ? 1 : 4}px">${dayBars}</div>
+        <div class="sh-legend"><span>${nd <= 16 ? T.dayTotalNote : '&nbsp;'}</span></div></section>
       <section class="sh-box"><h3>${T.arrivalsByHour}</h3><div class="vbars">${hourBars}</div>
         <div class="sh-legend"><span>${T.oncePerDay}</span></div></section>
     </div>
@@ -1469,7 +1493,7 @@ function fillWeekly(keys, prevKeys) {
       <thead><tr><th>${T.day}</th><th class="r">${T.bikes}</th><th class="r">${T.avgStayShort}</th><th class="r">${T.median}</th><th class="r">${T.firstIn}</th><th class="r">${T.lastOut}</th>${priced ? `<th class="r">${T.collection}</th>` : ''}</tr></thead>
       <tbody>${rows.map(r => `<tr class="${r.n ? '' : 'dim'}"><td>${esc(keyLabel(r.key))}</td><td class="r">${r.n}</td>
         <td class="r">${fmtDur(r.avg)}</td><td class="r">${fmtDur(r.med)}</td><td class="r">${fmtHM(r.first)}</td><td class="r">${fmtHM(r.last)}</td>${priced ? `<td class="r">${fmtMoney(r.n * price)}</td>` : ''}</tr>`).join('')}
-        <tr><td><b>${T.week}</b></td><td class="r"><b>${bikes.length}</b></td><td colspan="4"></td>${priced ? `<td class="r"><b>${fmtMoney(bikes.length * price)}</b></td>` : ''}</tr>
+        <tr><td><b>${T.totalRow}</b></td><td class="r"><b>${bikes.length}</b></td><td colspan="4"></td>${priced ? `<td class="r"><b>${fmtMoney(bikes.length * price)}</b></td>` : ''}</tr>
       </tbody></table>${priced ? `<div class="sh-legend"><span>${esc(T.collectionNote(fmtMoney(price)))}</span></div>` : ''}</section>
     <section class="sh-box"><h3>${T.howLongWashes}</h3><div class="hbars num">${buckets.map(([label, c]) =>
       `<span>${esc(label)}</span><div class="bar" style="width:${c / maxBucket * 100}%"></div><b>${c}</b>`).join('')}</div></section>
@@ -1477,7 +1501,7 @@ function fillWeekly(keys, prevKeys) {
   </article>`;
 }
 
-const weeklyFileName = () => { const s = isoToDate(state.wk.start); return `${SHOP_NAME} ${T.weeklyFile} ${dateToIso(s)} ${T.to} ${dateToIso(addDays(s, 6))}`; };
+const weeklyFileName = () => `${SHOP_NAME} ${T.weeklyFile} ${state.wk.from} ${T.to} ${state.wk.to}`;
 const compactSheet = () => { const el = $('#wkBody .sheet').cloneNode(true); el.classList.add('compact'); return el; };
 
 /* The PDF is built in the page and downloaded as a file, not saved from the
@@ -1632,9 +1656,9 @@ $('#presets').onclick = e => {
 };
 $('#applyRange').onclick = () => { state.customStart = $('#dFrom').value; state.customEnd = $('#dTo').value; refreshData(); };
 $('#refresh').onclick = () => {
-  if (state.tab === 'weekly' && state.wk.start) {
-    const s = isoToDate(state.wk.start);
-    keysBetween(addDays(s, -7), addDays(s, 6)).forEach(k => cache.delete(k));
+  if (state.tab === 'weekly' && state.wk.from) {
+    const x = isoToDate(state.wk.from), y = isoToDate(state.wk.to), n = Math.round((y - x) / 864e5) + 1;
+    keysBetween(addDays(x, -n), y).forEach(k => cache.delete(k));
   }
   refreshData(true);
 };
@@ -1643,170 +1667,6 @@ if (window.matchMedia) {
 }
 
 document.addEventListener('click', e => { const b = e.target.closest('.lang [data-lang]'); if (b) setLang(b.dataset.lang); });
-
-/* ------------------------------------------------------------------ */
-/* Sample data upload (buttons shown only with ?seed=1)                */
-/* Writes the records below to Firestore as signed-in user. Needs      */
-/* write rules for session_id ending in "_sample" (see chat reply).    */
-/* Paste: one line per event, "HHMM motor <colour> in|out|masuk|keluar" */
-/* ------------------------------------------------------------------ */
-const SEED_SUFFIX = 'sample';
-const SEED_TEXT = `
-31 Oct 2026
-1000 motor hitam in
-1020 motor hitam out
-1040 motor putih in
-1117 motor putih out
-1130 motor hitam in
-1150 motor hitam keluar
-1218 motor merah in
-1514 motor merah keluar
-1550 motor hitam in
-1554 motor hitam out
-1555 motor hitam in
-1614 motor hitam out
-1620 motor hitam in
-1655 motor hitam out
-1720 motor hitam in
-1735 motor hitam out
-1749 motor merah in
-1807 motor merah out
-1825 motor hitam in
-1835 motor hitam out
-
-1st Nov 2026
-0949 motor hitam in
-1010 motor hitam out
-1015 motor hitam in
-1040 motor hitam out
-1047 motor hitam in
-1107 motor hitam out
-1112 motor hitam in
-1124 motor hitam out
-1142 motor hitam in
-1155 motor hitam out
-1312 motor hitam in
-1330 motor merah in
-1330 motor hitam in
-1334 motor hitam out
-1338 motor merah out
-1346 motor hitam out
-1355 motor biru in
-1414 motor biru out
-1414 motor merah in
-1426 motor merah out
-1602 motor hitam in
-1616 motor hitam out
-1638 motor putih in
-1650 motor putih out
-1714 motor putih in
-1725 motor putih out
-1731 motor brown masuk
-1750 motor brown out
-
-2nd nov 2026
-0000 motor emas in
-0929 motor emas out
-0934 motor merah in
-0949 motor merah out
-1000 motor putih in
-1018 motor hitam in
-1021 motor putih out
-1041 motor hitam out
-1055 motor merah in
-1108 motor merah out
-1118 motor pink in
-1134 motor pink out
-1147 motor hitam in
-1157 motor merah in
-1209 motor hitam out
-1213 motor merah out
-1248 motor putih in
-1308 motor putih keluar
-1309 motor biru masuk
-1317 motor biru keluar
-1457-current
-`;
-
-function seedDocs() {
-  const MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, mei: 5, jun: 6, jul: 7, aug: 8, agu: 8, sep: 9, oct: 10, okt: 10, nov: 11, dec: 12, des: 12 };
-  const days = [];
-  let cur = null;
-  SEED_TEXT.split('\n').map(l => l.trim()).filter(Boolean).forEach(line => {
-    let m = /^(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]+)\s+(\d{4})$/i.exec(line);
-    if (m) { cur = { y: +m[3], m: MON[m[2].slice(0, 3).toLowerCase()], d: +m[1], ev: [] }; days.push(cur); return; }
-    m = /^(\d{4})\s+motor\s+(\S+)\s+(in|out|masuk|keluar)$/i.exec(line);
-    if (m && cur) { cur.ev.push({ t: m[1], colour: m[2].toLowerCase(), out: /^(out|keluar)$/i.test(m[3]) }); return; }
-    m = /^(\d{4})\s*-\s*current$/i.exec(line);
-    if (m && cur) { cur.ev.push({ t: m[1], colour: 'unknown', out: false }); return; }
-    throw new Error('Cannot read line: ' + line);
-  });
-
-  /* Malaysia time (UTC+8), regardless of the viewer's own time zone */
-  const epoch = (y, mo, d, t) => (Date.UTC(y, mo - 1, d, +t.slice(0, 2), +t.slice(2)) - 8 * 36e5) / 1000;
-  const str = (y, mo, d, t) => `${y}-${pad(mo)}-${pad(d)} ${t.slice(0, 2)}:${t.slice(2)}:00`;
-  const out = [], warnings = [];
-
-  days.forEach(day => {
-    const { y, m, d } = day, dateKey = `${pad(d)}-${pad(m)}-${y}`, sid = `${y}-${pad(m)}-${pad(d)}_09-00-00_${SEED_SUFFIX}`;
-    const open = {}, visits = [];
-    day.ev.forEach(e => {
-      if (!e.out) { const v = { colour: e.colour, a: e.t, b: null }; (open[e.colour] = open[e.colour] || []).push(v); visits.push(v); }
-      else {
-        const v = (open[e.colour] || []).shift();
-        if (v) v.b = e.t; else warnings.push(`${dateKey} ${e.t} ${e.colour} out has no matching in`);
-      }
-    });
-    visits.forEach((v, i) => {
-      const track = i + 1, inE = epoch(y, m, d, v.a), inS = str(y, m, d, v.a), done = v.b != null;
-      const outE = done ? epoch(y, m, d, v.b) : null, outS = done ? str(y, m, d, v.b) : null;
-      const visit = { in_time: inE, in_time_str: inS, zone: '1', on_mat: true };
-      if (done) Object.assign(visit, { out_time: outE, out_time_str: outS, duration_seconds: outE - inE });
-      out.push({
-        dateKey, id: `${sid}_${track}`,
-        data: {
-          source: 'overlay', session_id: sid, track_id: track, colour: v.colour,
-          kind: done ? 'out' : 'in', status: done ? 'departed' : 'present',
-          timestamp: done ? outE : inE, time_str: done ? outS : inS, visit_start_time: inE,
-          zone: '1', zones_visited: ['1'], on_mat: true, plate_text: null,
-          duration_seconds: done ? outE - inE : null, detected_at: done ? outE : inE,
-          visits: { [String(inE)]: visit }
-        }
-      });
-    });
-  });
-  return { docs: out, warnings, days: days.map(x => `${pad(x.d)}-${pad(x.m)}-${x.y}`) };
-}
-
-async function seedRun(del) {
-  if (DEMO || !db || !FS) { setStatus('Sample upload only works on the live page (not demo mode).', 'warn'); return; }
-  const { docs, warnings, days } = seedDocs();
-  const msg = del
-    ? `Delete ${docs.length} sample records (${days.join(', ')}) from Firestore?`
-    : `Write ${docs.length} sample records (${days.join(', ')}) to Firestore?\nThey are marked "_${SEED_SUFFIX}" and can be removed with "Delete sample data".` +
-      (warnings.length ? `\n\nSkipped:\n${warnings.join('\n')}` : '');
-  if (!confirm(msg)) return;
-  const btns = ['#seedUp', '#seedDel'].map(s => $(s));
-  btns.forEach(b => { b.disabled = true; });
-  try {
-    const batch = FS.writeBatch(db);
-    docs.forEach(x => {
-      const ref = FS.doc(db, 'track_visits', x.dateKey, 'vehicles', x.id);
-      if (del) batch.delete(ref); else batch.set(ref, x.data);
-    });
-    await batch.commit();
-    setStatus(`${del ? 'Deleted' : 'Uploaded'} ${docs.length} sample records.`);
-    await refreshData(true);
-  } catch (e) {
-    console.error(e);
-    const denied = e && (e.code === 'permission-denied' || /permission/i.test(String(e.message)));
-    setStatus(denied ? 'Firestore rules refused the write. Allow writes for sample records first (see setup notes).' : `Upload failed: ${e && e.message ? e.message : e}`, 'err');
-  } finally {
-    btns.forEach(b => { b.disabled = false; });
-  }
-}
-$('#seedUp').onclick = () => seedRun(false);
-$('#seedDel').onclick = () => seedRun(true);
 
 boot();
 </script>
