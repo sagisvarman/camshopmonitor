@@ -18,7 +18,9 @@ DEMO MODE
 
 DATA
  - Reads only track_visits/{DD-MM-YYYY}/vehicles and zone_status/{DD-MM-YYYY}/zones,
-   only where source is "overlay" or "emulator". Never writes.
+   only where source is "overlay" or "emulator". Never writes, except the
+   sample-data buttons that appear when the URL has ?seed=1 (they only touch
+   documents whose session_id ends in "_sample").
  - Date documents do not exist, so every date key in the range is built and read
    directly (max 60 days). Results are cached in memory until you press Refresh.
  - Times shown are time_str values as stored (shop local time, no conversion).
@@ -272,6 +274,10 @@ body.wk-mode #presets,body.wk-mode #customDates{display:none!important}
       <button class="btn" id="applyRange" type="button" data-i18n="apply">Apply</button>
     </div>
     <button class="btn" id="refresh" type="button" data-i18n="refresh">Refresh</button>
+    <span id="seedBox" hidden style="display:inline-flex;gap:6px">
+      <button class="btn primary" id="seedUp" type="button">Upload sample data</button>
+      <button class="btn" id="seedDel" type="button">Delete sample data</button>
+    </span>
   </section>
   <p class="status" id="status" role="status"></p>
 
@@ -1637,6 +1643,171 @@ if (window.matchMedia) {
 }
 
 document.addEventListener('click', e => { const b = e.target.closest('.lang [data-lang]'); if (b) setLang(b.dataset.lang); });
+
+/* ------------------------------------------------------------------ */
+/* Sample data upload (buttons shown only with ?seed=1)                */
+/* Writes the records below to Firestore as signed-in user. Needs      */
+/* write rules for session_id ending in "_sample" (see chat reply).    */
+/* Paste: one line per event, "HHMM motor <colour> in|out|masuk|keluar" */
+/* ------------------------------------------------------------------ */
+const SEED_SUFFIX = 'sample';
+const SEED_TEXT = `
+31 Oct 2026
+1000 motor hitam in
+1020 motor hitam out
+1040 motor putih in
+1117 motor putih out
+1130 motor hitam in
+1150 motor hitam keluar
+1218 motor merah in
+1514 motor merah keluar
+1550 motor hitam in
+1554 motor hitam out
+1555 motor hitam in
+1614 motor hitam out
+1620 motor hitam in
+1655 motor hitam out
+1720 motor hitam in
+1735 motor hitam out
+1749 motor merah in
+1807 motor merah out
+1825 motor hitam in
+1835 motor hitam out
+
+1st Nov 2026
+0949 motor hitam in
+1010 motor hitam out
+1015 motor hitam in
+1040 motor hitam out
+1047 motor hitam in
+1107 motor hitam out
+1112 motor hitam in
+1124 motor hitam out
+1142 motor hitam in
+1155 motor hitam out
+1312 motor hitam in
+1330 motor merah in
+1330 motor hitam in
+1334 motor hitam out
+1338 motor merah out
+1346 motor hitam out
+1355 motor biru in
+1414 motor biru out
+1414 motor merah in
+1426 motor merah out
+1602 motor hitam in
+1616 motor hitam out
+1638 motor putih in
+1650 motor putih out
+1714 motor putih in
+1725 motor putih out
+1731 motor brown masuk
+1750 motor brown out
+
+2nd nov 2026
+0000 motor emas in
+0929 motor emas out
+0934 motor merah in
+0949 motor merah out
+1000 motor putih in
+1018 motor hitam in
+1021 motor putih out
+1041 motor hitam out
+1055 motor merah in
+1108 motor merah out
+1118 motor pink in
+1134 motor pink out
+1147 motor hitam in
+1157 motor merah in
+1209 motor hitam out
+1213 motor merah out
+1248 motor putih in
+1308 motor putih keluar
+1309 motor biru masuk
+1317 motor biru keluar
+1457-current
+`;
+
+function seedDocs() {
+  const MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, mei: 5, jun: 6, jul: 7, aug: 8, agu: 8, sep: 9, oct: 10, okt: 10, nov: 11, dec: 12, des: 12 };
+  const days = [];
+  let cur = null;
+  SEED_TEXT.split('\n').map(l => l.trim()).filter(Boolean).forEach(line => {
+    let m = /^(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]+)\s+(\d{4})$/i.exec(line);
+    if (m) { cur = { y: +m[3], m: MON[m[2].slice(0, 3).toLowerCase()], d: +m[1], ev: [] }; days.push(cur); return; }
+    m = /^(\d{4})\s+motor\s+(\S+)\s+(in|out|masuk|keluar)$/i.exec(line);
+    if (m && cur) { cur.ev.push({ t: m[1], colour: m[2].toLowerCase(), out: /^(out|keluar)$/i.test(m[3]) }); return; }
+    m = /^(\d{4})\s*-\s*current$/i.exec(line);
+    if (m && cur) { cur.ev.push({ t: m[1], colour: 'unknown', out: false }); return; }
+    throw new Error('Cannot read line: ' + line);
+  });
+
+  /* Malaysia time (UTC+8), regardless of the viewer's own time zone */
+  const epoch = (y, mo, d, t) => (Date.UTC(y, mo - 1, d, +t.slice(0, 2), +t.slice(2)) - 8 * 36e5) / 1000;
+  const str = (y, mo, d, t) => `${y}-${pad(mo)}-${pad(d)} ${t.slice(0, 2)}:${t.slice(2)}:00`;
+  const out = [], warnings = [];
+
+  days.forEach(day => {
+    const { y, m, d } = day, dateKey = `${pad(d)}-${pad(m)}-${y}`, sid = `${y}-${pad(m)}-${pad(d)}_09-00-00_${SEED_SUFFIX}`;
+    const open = {}, visits = [];
+    day.ev.forEach(e => {
+      if (!e.out) { const v = { colour: e.colour, a: e.t, b: null }; (open[e.colour] = open[e.colour] || []).push(v); visits.push(v); }
+      else {
+        const v = (open[e.colour] || []).shift();
+        if (v) v.b = e.t; else warnings.push(`${dateKey} ${e.t} ${e.colour} out has no matching in`);
+      }
+    });
+    visits.forEach((v, i) => {
+      const track = i + 1, inE = epoch(y, m, d, v.a), inS = str(y, m, d, v.a), done = v.b != null;
+      const outE = done ? epoch(y, m, d, v.b) : null, outS = done ? str(y, m, d, v.b) : null;
+      const visit = { in_time: inE, in_time_str: inS, zone: '1', on_mat: true };
+      if (done) Object.assign(visit, { out_time: outE, out_time_str: outS, duration_seconds: outE - inE });
+      out.push({
+        dateKey, id: `${sid}_${track}`,
+        data: {
+          source: 'overlay', session_id: sid, track_id: track, colour: v.colour,
+          kind: done ? 'out' : 'in', status: done ? 'departed' : 'present',
+          timestamp: done ? outE : inE, time_str: done ? outS : inS, visit_start_time: inE,
+          zone: '1', zones_visited: ['1'], on_mat: true, plate_text: null,
+          duration_seconds: done ? outE - inE : null, detected_at: done ? outE : inE,
+          visits: { [String(inE)]: visit }
+        }
+      });
+    });
+  });
+  return { docs: out, warnings, days: days.map(x => `${pad(x.d)}-${pad(x.m)}-${x.y}`) };
+}
+
+async function seedRun(del) {
+  if (DEMO || !db || !FS) { setStatus('Sample upload only works on the live page (not demo mode).', 'warn'); return; }
+  const { docs, warnings, days } = seedDocs();
+  const msg = del
+    ? `Delete ${docs.length} sample records (${days.join(', ')}) from Firestore?`
+    : `Write ${docs.length} sample records (${days.join(', ')}) to Firestore?\nThey are marked "_${SEED_SUFFIX}" and can be removed with "Delete sample data".` +
+      (warnings.length ? `\n\nSkipped:\n${warnings.join('\n')}` : '');
+  if (!confirm(msg)) return;
+  const btns = ['#seedUp', '#seedDel'].map(s => $(s));
+  btns.forEach(b => { b.disabled = true; });
+  try {
+    const batch = FS.writeBatch(db);
+    docs.forEach(x => {
+      const ref = FS.doc(db, 'track_visits', x.dateKey, 'vehicles', x.id);
+      if (del) batch.delete(ref); else batch.set(ref, x.data);
+    });
+    await batch.commit();
+    setStatus(`${del ? 'Deleted' : 'Uploaded'} ${docs.length} sample records.`);
+    await refreshData(true);
+  } catch (e) {
+    console.error(e);
+    const denied = e && (e.code === 'permission-denied' || /permission/i.test(String(e.message)));
+    setStatus(denied ? 'Firestore rules refused the write. Allow writes for sample records first (see setup notes).' : `Upload failed: ${e && e.message ? e.message : e}`, 'err');
+  } finally {
+    btns.forEach(b => { b.disabled = false; });
+  }
+}
+$('#seedUp').onclick = () => seedRun(false);
+$('#seedDel').onclick = () => seedRun(true);
+if (params.get('seed') === '1') $('#seedBox').hidden = false;
 
 boot();
 </script>
