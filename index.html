@@ -19,7 +19,7 @@ DEMO MODE
 DATA
  - Reads only track_visits/{DD-MM-YYYY}/vehicles and zone_status/{DD-MM-YYYY}/zones,
    only where source is "overlay" or "emulator". Never writes, except the
-   sample-data buttons that appear when the URL has ?seed=1 (they only touch
+   sample-data buttons in the controls bar (they only touch
    documents whose session_id ends in "_sample").
  - Date documents do not exist, so every date key in the range is built and read
    directly (max 60 days). Results are cached in memory until you press Refresh.
@@ -274,7 +274,7 @@ body.wk-mode #presets,body.wk-mode #customDates{display:none!important}
       <button class="btn" id="applyRange" type="button" data-i18n="apply">Apply</button>
     </div>
     <button class="btn" id="refresh" type="button" data-i18n="refresh">Refresh</button>
-    <span id="seedBox" hidden style="display:inline-flex;gap:6px">
+    <span id="seedBox" style="display:inline-flex;gap:6px">
       <button class="btn primary" id="seedUp" type="button">Upload sample data</button>
       <button class="btn" id="seedDel" type="button">Delete sample data</button>
     </span>
@@ -1807,7 +1807,6 @@ async function seedRun(del) {
 }
 $('#seedUp').onclick = () => seedRun(false);
 $('#seedDel').onclick = () => seedRun(true);
-if (params.get('seed') === '1') $('#seedBox').hidden = false;
 
 boot();
 </script>
