@@ -19,8 +19,7 @@ DEMO MODE
 DATA
  - Reads only track_visits/{SHOP_ID}/devices/{device}/days/{DD-MM-YYYY}/vehicles
    and .../zones, only where source is "overlay", "emulator" or "video"
-   (recordings counted on Colab by video_processor.py). Never writes, except the
-   "Upload sample data" button (records whose session_id ends in "_sample").
+   (recordings counted on Colab by video_processor.py). Never writes.
  - The devices are listed from track_visits/{SHOP_ID}/devices. Date documents do
    not exist, so every date key in the range is built and read directly for each
    device (max 60 days). Results are cached in memory until you press Refresh.
@@ -275,7 +274,6 @@ body.wk-mode #presets,body.wk-mode #customDates{display:none!important}
       <button class="btn" id="applyRange" type="button" data-i18n="apply">Apply</button>
     </div>
     <button class="btn" id="refresh" type="button" data-i18n="refresh">Refresh</button>
-    <button class="btn primary" id="seedUp" type="button">Upload sample data</button>
   </section>
   <p class="status" id="status" role="status"></p>
 
@@ -1680,115 +1678,6 @@ if (window.matchMedia) {
 }
 
 document.addEventListener('click', e => { const b = e.target.closest('.lang [data-lang]'); if (b) setLang(b.dataset.lang); });
-
-/* ------------------------------------------------------------------ */
-/* Sample data upload ("Upload sample data" button)                    */
-/* Writes to track_visits/{SHOP_ID}/devices/{SEED_DEVICE}/days/...      */
-/* and creates the device document too (the page lists devices from    */
-/* documents that exist). Paste lines as "HHMM motor <colour> in|out|  */
-/* masuk|keluar" under a date heading. Times are Malaysia time (UTC+8). */
-/* ------------------------------------------------------------------ */
-const SEED_DEVICE = 'sample-device';
-/* Each batch gets its own session_id (date + time + "_sample"), so batches never overwrite each other. */
-const SEED_BATCHES = [
-  { time: '15-00-00', text: `
-2nd Nov 2026
-1526 motor hitam masuk
-1537 motor hitam keluar
-1555 motor hitam masuk
-1613 motor hitam keluar
-1617 motor hitam masuk
-1634 motor hitam keluar
-1638 motor hitam masuk
-1650 motor hitam keluar
-1655 motor hitam masuk
-1712 motor hitam keluar
-1715 motor hitam masuk
-1726 motor hitam keluar
-1746 motor hitam masuk
-` }
-];
-
-function seedBatch(text, time) {
-  const MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, mei: 5, jun: 6, jul: 7, aug: 8, agu: 8, sep: 9, oct: 10, okt: 10, nov: 11, dec: 12, des: 12 };
-  const days = [];
-  let cur = null;
-  text.split('\n').map(l => l.trim()).filter(Boolean).forEach(line => {
-    let m = /^(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]+)\s+(\d{4})$/i.exec(line);
-    if (m) { cur = { y: +m[3], m: MON[m[2].slice(0, 3).toLowerCase()], d: +m[1], ev: [] }; days.push(cur); return; }
-    m = /^(\d{4})\s+motor\s+(\S+)\s+(in|out|masuk|keluar)$/i.exec(line);
-    if (m && cur) { cur.ev.push({ t: m[1], colour: m[2].toLowerCase(), out: /^(out|keluar)$/i.test(m[3]) }); return; }
-    m = /^(\d{4})\s*-\s*current$/i.exec(line); /* "1457-current": a bike still there, colour not noted */
-    if (m && cur) { cur.ev.push({ t: m[1], colour: 'unknown', out: false }); return; }
-    throw new Error('Cannot read line: ' + line);
-  });
-
-  const epoch = (y, mo, d, t) => (Date.UTC(y, mo - 1, d, +t.slice(0, 2), +t.slice(2)) - 8 * 36e5) / 1000;
-  const str = (y, mo, d, t) => `${y}-${pad(mo)}-${pad(d)} ${t.slice(0, 2)}:${t.slice(2)}:00`;
-  const out = [], warnings = [];
-
-  days.forEach(day => {
-    const { y, m, d } = day, dateKey = `${pad(d)}-${pad(m)}-${y}`, sid = `${y}-${pad(m)}-${pad(d)}_${time}_sample`;
-    const open = {}, visits = [];
-    day.ev.forEach(e => {
-      if (!e.out) { const v = { colour: e.colour, a: e.t, b: null }; (open[e.colour] = open[e.colour] || []).push(v); visits.push(v); }
-      else {
-        const v = (open[e.colour] || []).shift();
-        if (v) v.b = e.t; else warnings.push(`${dateKey} ${e.t} ${e.colour} out has no matching in`);
-      }
-    });
-    visits.forEach((v, i) => {
-      const track = i + 1, inE = epoch(y, m, d, v.a), inS = str(y, m, d, v.a), done = v.b != null;
-      const outE = done ? epoch(y, m, d, v.b) : null, outS = done ? str(y, m, d, v.b) : null;
-      const visit = { in_time: inE, in_time_str: inS, zone: '1', on_mat: true };
-      if (done) Object.assign(visit, { out_time: outE, out_time_str: outS, duration_seconds: outE - inE });
-      out.push({
-        dateKey, id: `${sid}_${track}`,
-        data: {
-          source: 'overlay', session_id: sid, track_id: track, colour: v.colour,
-          kind: done ? 'out' : 'in', status: done ? 'departed' : 'present',
-          timestamp: done ? outE : inE, time_str: done ? outS : inS, visit_start_time: inE,
-          zone: '1', zones_visited: ['1'], on_mat: true, plate_text: null,
-          duration_seconds: done ? outE - inE : null, detected_at: done ? outE : inE,
-          visits: { [String(inE)]: visit }
-        }
-      });
-    });
-  });
-  return { docs: out, warnings, days: days.map(x => `${pad(x.d)}-${pad(x.m)}-${x.y}`) };
-}
-
-function seedDocs() {
-  const all = { docs: [], warnings: [], days: [] };
-  SEED_BATCHES.forEach(b => {
-    const r = seedBatch(b.text, b.time);
-    all.docs.push(...r.docs); all.warnings.push(...r.warnings);
-    r.days.forEach(d => { if (!all.days.includes(d)) all.days.push(d); });
-  });
-  return all;
-}
-
-async function seedRun() {
-  if (DEMO || !db || !FS) { setStatus('Sample upload only works on the live page (not demo mode).', 'warn'); return; }
-  const { docs, warnings } = seedDocs();
-  const btn = $('#seedUp');
-  btn.disabled = true;
-  try {
-    const batch = FS.writeBatch(db);
-    batch.set(FS.doc(db, 'track_visits', SHOP_ID, 'devices', SEED_DEVICE), { sample: true, note: 'Sample data device' });
-    docs.forEach(x => batch.set(FS.doc(db, 'track_visits', SHOP_ID, 'devices', SEED_DEVICE, 'days', x.dateKey, 'vehicles', x.id), x.data));
-    await batch.commit();
-    setStatus(`Uploaded ${docs.length} sample records to ${SHOP_ID} / ${SEED_DEVICE}.` + (warnings.length ? ` Skipped: ${warnings.join('; ')}` : ''));
-    await refreshData(true);
-  } catch (e) {
-    console.error(e);
-    const denied = e && (e.code === 'permission-denied' || /permission/i.test(String(e.message)));
-    setStatus(denied ? `Firestore rules refused the write. Allow writes on track_visits/${SHOP_ID}/devices for sample records first.` : `Upload failed: ${e && e.message ? e.message : e}`, 'err');
-  } finally {
-    btn.disabled = false;
-  }
-}
-$('#seedUp').onclick = seedRun;
 
 boot();
 </script>
