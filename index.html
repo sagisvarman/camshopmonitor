@@ -1,3 +1,4 @@
+
 <!doctype html>
 <!--
 =====================================================================
@@ -17,10 +18,12 @@ DEMO MODE
    ?demo=1, the page skips sign-in and shows generated sample data.
 
 DATA
- - Reads only track_visits/{DD-MM-YYYY}/vehicles and zone_status/{DD-MM-YYYY}/zones,
-   only where source is "overlay" or "emulator". Never writes.
- - Date documents do not exist, so every date key in the range is built and read
-   directly (max 60 days). Results are cached in memory until you press Refresh.
+ - Reads only track_visits/{SHOP_ID}/devices/{device}/days/{DD-MM-YYYY}/vehicles
+   and .../zones, only where source is "overlay", "emulator" or "video"
+   (recordings counted on Colab by video_processor.py). Never writes.
+ - The devices are listed from track_visits/{SHOP_ID}/devices. Date documents do
+   not exist, so every date key in the range is built and read directly for each
+   device (max 60 days). Results are cached in memory until you press Refresh.
  - Times shown are time_str values as stored (shop local time, no conversion).
  - Older documents may lack on_mat, zones_visited, visit_start_time, plate_text
    and the visits map. They are treated as optional; when on_mat is missing a
@@ -302,7 +305,10 @@ const SHOP_NAME = 'Shop name';
 /* Shown before amounts on the Collection tab. */
 const CURRENCY = 'Rp';
 
-const ALLOWED_SOURCES = ['overlay', 'emulator'];
+/* Which shop's data to show: the SHOP_ID its Mac runs with (firebase_logger.py). */
+const SHOP_ID = 'testshop-1';
+
+const ALLOWED_SOURCES = ['overlay', 'emulator', 'video'];
 const MAX_DAYS = 60;
 const STALE_HOURS = 6;
 const PAGE_SIZE = 200;
@@ -349,7 +355,7 @@ const I18N = {
     loading: 'Loading', fetching: range => `Fetching detections for ${range}.`, sampleData: 'sample data',
     loaded: (n, total, st, src) => `${plural(n, 'day')} in range, ${plural(total, 'document')} in view. This load read ${plural(st.read, 'day')} (${plural(st.docs, 'document')}) from ${src}; ${st.cached} from the session cache.`,
     refused: 'Firestore refused the read.', rulesBlock: 'Firestore rules block public reads',
-    rulesBlockText: 'Publish rules that allow read on track_visits and zone_status, then ',
+    rulesBlockText: 'Publish rules that allow read on track_visits, then ',
     loadFailed: msg => `Could not load data: ${msg}`, readError: 'Something went wrong reading the data',
     readErrorText: 'Check your connection and the Firebase config, then ', tryAgain: 'try again',
     noChartLib: 'The chart library did not load (offline?). Tables still work.',
@@ -481,7 +487,7 @@ const I18N = {
     loading: 'Memuat', fetching: range => `Mengambil deteksi ${range}.`, sampleData: 'data contoh',
     loaded: (n, total, st, src) => `${n} hari dalam rentang, ${total} dokumen ditampilkan. Pemuatan ini membaca ${st.read} hari (${st.docs} dokumen) dari ${src}; ${st.cached} dari cache sesi.`,
     refused: 'Firestore menolak pembacaan.', rulesBlock: 'Aturan Firestore memblokir pembacaan publik',
-    rulesBlockText: 'Terbitkan aturan yang mengizinkan baca di track_visits dan zone_status, lalu ',
+    rulesBlockText: 'Terbitkan aturan yang mengizinkan baca di track_visits, lalu ',
     loadFailed: msg => `Gagal memuat data: ${msg}`, readError: 'Terjadi kesalahan saat membaca data',
     readErrorText: 'Periksa koneksi dan konfigurasi Firebase, lalu ', tryAgain: 'coba lagi',
     noChartLib: 'Library grafik gagal dimuat (offline?). Tabel tetap bisa dipakai.',
@@ -755,20 +761,26 @@ function normalizeZoneDoc(d, dateKey, docId) {
 /* ------------------------------------------------------------------ */
 const cache = new Map(); /* dateKey -> { bikes, zones, nDocs } */
 let db = null, FS = null, AU = null, auth = null;
+let devices = null; /* names under track_visits/{SHOP_ID}/devices; null = list again */
+
+async function listDevices() {
+  const { collection, getDocs } = FS;
+  const snap = await getDocs(collection(db, 'track_visits', SHOP_ID, 'devices'));
+  return snap.docs.map(x => x.id);
+}
 
 async function fetchDay(key) {
   if (DEMO) return demoDay(key);
   const { collection, getDocs, query, where } = FS;
-  const q1 = query(collection(db, 'track_visits', key, 'vehicles'), where('source', 'in', ALLOWED_SOURCES));
-  const q2 = query(collection(db, 'zone_status', key, 'zones'), where('source', 'in', ALLOWED_SOURCES));
-  const [a, b] = await Promise.all([getDocs(q1), getDocs(q2)]);
-  return {
-    vehicles: a.docs.map(x => ({ id: x.id, data: x.data() })),
-    zones: b.docs.map(x => ({ id: x.id, data: x.data() }))
-  };
+  const read = (device, sub) => getDocs(query(collection(db, 'track_visits', SHOP_ID, 'devices', device, 'days', key, sub),
+    where('source', 'in', ALLOWED_SOURCES)));
+  const [a, b] = await Promise.all(['vehicles', 'zones'].map(sub => Promise.all(devices.map(device => read(device, sub)))));
+  const rows = snaps => snaps.flatMap(s => s.docs.map(x => ({ id: x.id, data: x.data() })));
+  return { vehicles: rows(a), zones: rows(b) };
 }
 
 async function loadDays(keys, force = false) {
+  if (!DEMO && (force || !devices)) devices = await listDevices();
   const todo = keys.filter(k => force || !cache.has(k));
   const results = await Promise.all(todo.map(async k => [k, await fetchDay(k)]));
   let docs = 0;
@@ -939,7 +951,7 @@ function setStatus(msg, cls = '') { const s = $('#status'); s.textContent = msg;
 async function refreshData(force = false) {
   const r = computeRange();
   if (r.error) { state.keys = []; setStatus(r.error, 'warn'); $('#panel').innerHTML = ''; return; }
-  if (force) { r.keys.forEach(k => cache.delete(k)); cache.delete(dkey(todayDate())); }
+  if (force) { r.keys.forEach(k => cache.delete(k)); cache.delete(dkey(todayDate())); devices = null; }
   state.keys = r.keys; state.rangeText = r.text;
   const seq = ++state.loadSeq;
   setStatus(T.reading(r.keys.length));
@@ -1614,7 +1626,7 @@ async function boot() {
   if (!REQUIRE_LOGIN) { $('#whoBox').hidden = true; startApp(); return; }
   AU.onAuthStateChanged(auth, user => {
     if (user) { $('#who').textContent = user.email || T.signedIn; startApp(); }
-    else { cache.clear(); state.keys = []; $('#pw').value = ''; show('auth'); }
+    else { cache.clear(); devices = null; state.keys = []; $('#pw').value = ''; show('auth'); }
   });
 }
 
