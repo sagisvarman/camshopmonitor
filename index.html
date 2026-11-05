@@ -394,7 +394,7 @@ const I18N = {
     zoneN: z => `Zone ${z}`, noZone: 'No zone', washesOnly: 'Washes only', searchPlate: 'Search plate',
     exportCsv: 'Export CSV', showMore: 'Show more',
     matchCount: (n, shown) => `${plural(n, 'motorbike')} match${n === 1 ? 'es' : ''} the filters.${n > shown ? ` Showing the first ${shown}.` : ' Click a row to see each visit.'}`,
-    cols: { date: 'Date', feed: 'Feed', bike: 'Bike', plate: 'Plate', in: 'In', out: 'Out', dur: 'Stay', zone: 'Zone', type: 'Type', status: 'Status' },
+    cols: { date: 'Date', feed: 'Feed', bike: 'Bike', plate: 'Plate', color: 'Color', in: 'In', out: 'Out', dur: 'Stay', zone: 'Zone', type: 'Type', status: 'Status' },
     warning: 'Warning', duration: 'Duration', stillPresent: 'still present',
     closedTip: r => `Closed after a ${r}: out time and duration may be short`, closedLabel: r => `Closed after a ${r}`,
     detailNote: (sid, id, legacy) => `Session ${sid || 'unknown'}, document ${id}${legacy ? ', older record (visit rebuilt from top-level fields)' : ''}`,
@@ -536,7 +536,7 @@ const I18N = {
     zoneN: z => `Zona ${z}`, noZone: 'Tanpa zona', washesOnly: 'Hanya yang dicuci', searchPlate: 'Cari plat nomor',
     exportCsv: 'Ekspor CSV', showMore: 'Tampilkan lebih banyak',
     matchCount: (n, shown) => `${n} motor cocok dengan filter.${n > shown ? ` Menampilkan ${shown} pertama.` : ' Klik baris untuk melihat tiap kunjungan.'}`,
-    cols: { date: 'Tanggal', feed: 'Feed', bike: 'Motor', plate: 'Plat', in: 'Masuk', out: 'Keluar', dur: 'Durasi', zone: 'Zona', type: 'Jenis', status: 'Status' },
+    cols: { date: 'Tanggal', feed: 'Feed', bike: 'Motor', plate: 'Plat', color: 'Warna', in: 'Masuk', out: 'Keluar', dur: 'Durasi', zone: 'Zona', type: 'Jenis', status: 'Status' },
     warning: 'Peringatan', duration: 'Durasi', stillPresent: 'masih di lokasi',
     closedTip: r => `Ditutup setelah ${r}: waktu keluar dan durasi mungkin terlalu pendek`, closedLabel: r => `Ditutup setelah ${r}`,
     detailNote: (sid, id, legacy) => `Sesi ${sid || 'tidak diketahui'}, dokumen ${id}${legacy ? ', catatan lama (kunjungan disusun ulang dari data tingkat atas)' : ''}`,
@@ -728,7 +728,7 @@ function normVisit(v, k, d, topOnMat) {
   if (typeof v.on_mat === 'boolean') wash = v.on_mat;
   else if (topOnMat !== null) wash = topOnMat;
   else wash = hasZone(v.zone ?? d.zone);
-  return { inEpoch, outEpoch, inWall, outWall, hasOut, duration, zone, wash, plate: v.plate_text || null };
+  return { inEpoch, outEpoch, inWall, outWall, hasOut, duration, zone, wash, plate: v.plate_text || null, color: v.bike_color || null };
 }
 
 function normalizeBike(d, dateKey, docId) {
@@ -774,6 +774,7 @@ function normalizeBike(d, dateKey, docId) {
     sessionId: d.session_id || null, trackId: d.track_id ?? null,
     feed, source: d.source || 'unknown',
     plate: d.plate_text || (visits.find(v => v.plate) || {}).plate || null,
+    color: d.bike_color || (visits.find(v => v.color) || {}).color || null,
     visits, legacy, reason: d.reason || null, status, present: status === 'present',
     zone: lastZoned ? lastZoned.zone : (zones[0] || null), zones,
     wash: visits.some(v => v.wash),
@@ -1133,6 +1134,7 @@ function sortVal(b, k) {
   switch (k) {
     case 'date': return b.dayMs + ((b.firstIn ?? b.dayMs) - b.dayMs) / 1e9;
     case 'feed': return b.feed.label; case 'bike': return b.trackId; case 'plate': return b.plate;
+    case 'color': return b.color;
     case 'in': return b.firstIn ?? b.dayMs; case 'out': return b.lastOut;
     case 'dur': return b.hasCompleted ? b.stay : null; case 'zone': return b.zone;
     case 'type': return b.wash ? T.wash : T.offMats; case 'status': return statusLabel(b);
@@ -1181,7 +1183,7 @@ function fillVisits() {
   const f = state.v, all = sortedVisits(), shown = all.slice(0, f.limit);
   $('#vCount').textContent = T.matchCount(all.length, shown.length);
   $('#vMore').hidden = all.length <= shown.length;
-  const cols = ['date', 'feed', 'bike', 'plate', 'in', 'out', 'dur', 'zone', 'type', 'status'];
+  const cols = ['date', 'feed', 'bike', 'plate', 'color', 'in', 'out', 'dur', 'zone', 'type', 'status'];
   const head = cols.map(k => {
     const on = f.sort === k;
     return `<th ${on ? `aria-sort="${f.dir === 'asc' ? 'ascending' : 'descending'}"` : ''}><button type="button" data-s="${k}">${esc(T.cols[k])}${on ? (f.dir === 'asc' ? ' &#9650;' : ' &#9660;') : ''}</button></th>`;
@@ -1191,14 +1193,14 @@ function fillVisits() {
     const r = `<tr class="row" tabindex="0" data-k="${esc(key)}" aria-expanded="${open}">
       <td>${esc(b.date)}</td><td title="${esc(b.sessionId || '')}">${esc(b.feed.label)}</td>
       <td class="num">#${esc(b.trackId ?? '?')}${b.visits.length > 1 ? ` <span class="pill off" title="${plural(b.visits.length, 'visit')}">x${b.visits.length}</span>` : ''}</td>
-      <td>${esc(b.plate || '-')}</td><td class="num">${fmtHMS(b.firstIn)}</td><td class="num">${b.lastOut != null && !b.present ? fmtHMS(b.lastOut) : (b.lastOut != null ? fmtHMS(b.lastOut) : '-')}</td>
+      <td>${esc(b.plate || '-')}</td><td>${esc(b.color || '-')}</td><td class="num">${fmtHMS(b.firstIn)}</td><td class="num">${b.lastOut != null && !b.present ? fmtHMS(b.lastOut) : (b.lastOut != null ? fmtHMS(b.lastOut) : '-')}</td>
       <td class="num">${b.hasCompleted ? fmtDur(b.stay) : '-'}</td><td>${esc(b.zones.join(', ') || '-')}</td>
       <td><span class="pill ${b.wash ? 'wash' : 'off'}">${b.wash ? T.wash : T.offMats}</span></td>
       <td>${isStale(b) ? `<span class="pill warn">${T.possiblyStale}</span>` : esc(statusLabel(b))}</td>
       <td>${b.reason ? `<span class="warnicon" title="${esc(T.closedTip(reasonText(b.reason)))}" aria-label="${esc(T.closedLabel(reasonText(b.reason)))}">&#9888;</span>` : ''}</td></tr>`;
     if (!open) return r;
     const vr = b.visits.map(v => `<tr><td class="num">${fmtHMS(v.inWall)}</td><td class="num">${fmtHMS(v.outWall)}</td><td class="num">${v.hasOut ? fmtDur(v.duration) : T.stillPresent}</td><td>${esc(v.zone || '-')}</td><td>${v.wash ? T.wash : T.offMats}</td></tr>`).join('');
-    return r + `<tr class="detail"><td colspan="11"><div class="tw" style="max-width:520px"><table class="num"><thead><tr><th>${T.cols.in}</th><th>${T.cols.out}</th><th>${T.duration}</th><th>${T.cols.zone}</th><th>${T.cols.type}</th></tr></thead><tbody>${vr}</tbody></table></div>
+    return r + `<tr class="detail"><td colspan="12"><div class="tw" style="max-width:520px"><table class="num"><thead><tr><th>${T.cols.in}</th><th>${T.cols.out}</th><th>${T.duration}</th><th>${T.cols.zone}</th><th>${T.cols.type}</th></tr></thead><tbody>${vr}</tbody></table></div>
       <div style="font-size:12px;color:var(--muted);margin-top:6px">${esc(T.detailNote(b.sessionId, b.id, b.legacy))}</div></td></tr>`;
   }).join('');
   $('#vTable').innerHTML = shown.length
@@ -1215,9 +1217,9 @@ function fillVisits() {
 
 function exportCsv() {
   const cell = v => { let s = v == null ? '' : String(v); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-  const head = ['date', 'feed', 'source', 'session_id', 'track_id', 'plate', 'first_in', 'last_out', 'stay_seconds', 'zones', 'type', 'status', 'flag_reason', 'visits'];
+  const head = ['date', 'feed', 'source', 'session_id', 'track_id', 'plate', 'color', 'first_in', 'last_out', 'stay_seconds', 'zones', 'type', 'status', 'flag_reason', 'visits'];
   const lines = [head.join(',')];
-  sortedVisits().forEach(b => lines.push([keyIso(b.date), b.feed.label, b.source, b.sessionId, b.trackId, b.plate,
+  sortedVisits().forEach(b => lines.push([keyIso(b.date), b.feed.label, b.source, b.sessionId, b.trackId, b.plate, b.color,
     b.firstIn != null ? wallStr(b.firstIn) : '', b.lastOut != null ? wallStr(b.lastOut) : '', b.hasCompleted ? Math.round(b.stay) : '',
     b.zones.join(' '), b.wash ? T.csvWash : T.csvOff, statusLabel(b), b.reason || '', b.visits.length].map(cell).join(',')));
   const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
