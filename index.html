@@ -7,11 +7,20 @@ SETUP
  1. Fill in FIREBASE_CONFIG near the top of the <script> (apiKey, authDomain,
     projectId, appId). Firebase Console > Project settings > Your apps > Web app.
  2. Firebase Console > Authentication: enable Google and/or Email/Password,
-    add your Vercel domain under Settings > Authorized domains, add users.
- 3. Publish the Firestore security rules (see the chat reply): read-only,
-    allowlisted emails only, all client writes denied except the CCTV tab's
+    add your Vercel domain under Settings > Authorized domains.
+ 3. Publish the Firestore security rules (firestore.rules, next to app.py):
+    read-only, all client writes denied except the CCTV tab's
     track_visits/{shop}/cctv_watch/latest (field "at" = request.time only).
  4. Deploy this one file to Vercel (CLI: `vercel --prod`, or connect a Git repo).
+
+SHOPS AND LOGINS
+ - Each shop's logins are made on the Mac app's Settings page (shop_logins.py).
+   A login carries its shop's id (a "shop" claim), and sees only that shop:
+   the page reads it from the login, and the rules refuse every other shop.
+ - The owner (the email in firestore.rules' isAllowed) sees every shop, with a
+   shop picker in the header.
+ - A shop's name and time zone come from its document, track_visits/{shop}
+   (saved by the Settings page): the report's title, and which day is today.
 
 DEMO MODE
  - While FIREBASE_CONFIG still has YOUR_... placeholders, or when the URL has
@@ -62,6 +71,7 @@ button{cursor:pointer}
 /* header and controls */
 .top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0 12px;border-bottom:1px solid var(--line);margin-bottom:12px}
 .brand{font:700 20px/1 var(--head)}
+.top .shop{font:700 15px/1 var(--head);color:var(--muted)}
 .tag{font-size:12px;font-weight:600;background:var(--warn-soft);color:var(--warn);padding:2px 8px;border:1px solid var(--warn)}
 .who{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);min-width:0}
 .who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:46vw}
@@ -271,6 +281,8 @@ body.wk-mode #presets,body.wk-mode #customDates{display:none!important}
 <div id="app" class="wrap" hidden>
   <header class="top">
     <div class="brand" data-i18n="title">Wash mat report</div>
+    <span class="shop" id="shopName"></span>
+    <select id="shopPick" aria-label="Shop" data-i18n-label="shop" hidden></select>
     <span class="tag" id="demoTag" data-i18n="demoData" hidden>Demo data</span>
     <div class="seg lang" role="group"></div>
     <div class="who" id="whoBox"><span id="who"></span><button class="btn" id="signOut" type="button" data-i18n="signOut">Sign out</button></div>
@@ -314,14 +326,21 @@ const FIREBASE_CONFIG = {
    allowlist rules). false = anyone with the link can view. */
 const REQUIRE_LOGIN = true;
 
-/* Printed at the top of the Weekly report tab's printable sheet. */
-const SHOP_NAME = 'Shop name';
-
 /* Shown before amounts on the Collection tab. */
 const CURRENCY = 'Rp';
 
-/* Which shop's data to show: the SHOP_ID its Mac runs with (firebase_logger.py). */
-const SHOP_ID = 'testshop-1';
+/* The shop shown: the signed-in login's own (see SHOPS AND LOGINS), or the
+   one picked in the owner's shop picker. These are only what's shown before
+   that, in demo data, and without sign-in (REQUIRE_LOGIN false). */
+let SHOP_ID = 'testshop-1';
+/* Printed at the top of the Weekly report tab's printable sheet. */
+let SHOP_NAME = 'Shop name';
+/* The shop's time zone, for which day is today there; null = this browser's. */
+let SHOP_TZ = null;
+
+/* Show the CCTV tab (the camera's picture, sent by cctv_feed.py). Needs the
+   cctv_watch Firestore rule (see SETUP). */
+const SHOW_CCTV = false;
 
 const ALLOWED_SOURCES = ['overlay', 'emulator', 'video'];
 const MAX_DAYS = 60;
@@ -359,7 +378,7 @@ const I18N = {
     deniedPost: ', but this account is not on the access list. Ask the owner to add your email, then sign in again.',
     demoData: 'Demo data', dateRange: 'Date range', rangePresets: 'Range presets', today: 'Today', last7: 'Last 7 days',
     last30: 'Last 30 days', custom: 'Custom', fromDate: 'From date', toDate: 'To date', to: 'to', apply: 'Apply',
-    refresh: 'Refresh', reports: 'Reports',
+    refresh: 'Refresh', reports: 'Reports', shop: 'Shop',
 
     /* range, status line and errors */
     rangeToday: 'today', range7: 'the last 7 days', range30: 'the last 30 days', rangeCustom: (a, b) => `${a} to ${b}`,
@@ -504,7 +523,7 @@ const I18N = {
     deniedPost: ', tetapi akun ini tidak ada di daftar akses. Minta pemilik menambahkan email Anda, lalu masuk lagi.',
     demoData: 'Data contoh', dateRange: 'Rentang tanggal', rangePresets: 'Pilihan rentang', today: 'Hari ini', last7: '7 hari',
     last30: '30 hari', custom: 'Pilih tanggal', fromDate: 'Tanggal mulai', toDate: 'Tanggal akhir', to: 'sampai', apply: 'Terapkan',
-    refresh: 'Muat ulang', reports: 'Laporan',
+    refresh: 'Muat ulang', reports: 'Laporan', shop: 'Toko',
 
     rangeToday: 'hari ini', range7: 'dalam 7 hari terakhir', range30: 'dalam 30 hari terakhir', rangeCustom: (a, b) => `dari ${a} sampai ${b}`,
     needDates: 'Pilih tanggal mulai dan tanggal akhir, lalu tekan Terapkan.',
@@ -676,7 +695,22 @@ function wallStr(ms) {
 }
 const fmtHM = ms => ms == null ? '-' : wallStr(ms).slice(11, 16);
 const fmtHMS = ms => ms == null ? '-' : wallStr(ms).slice(11, 19);
-function toWallNow() { const n = new Date(); return Date.UTC(n.getFullYear(), n.getMonth(), n.getDate(), n.getHours(), n.getMinutes(), n.getSeconds()); }
+/* The shop's clock now as [year, month 0-11, day, hour, minute, second]: in
+   its time zone (SHOP_TZ), so the owner looking at a shop in another zone gets
+   that shop's today; this browser's clock when there's none. */
+function shopNow() {
+  const n = new Date();
+  if (SHOP_TZ) {
+    try {
+      const p = {};
+      new Intl.DateTimeFormat('en-US', { timeZone: SHOP_TZ, hourCycle: 'h23', year: 'numeric', month: 'numeric',
+        day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' }).formatToParts(n).forEach(x => { p[x.type] = +x.value; });
+      return [p.year, p.month - 1, p.day, p.hour, p.minute, p.second];
+    } catch (e) { /* a time zone this browser doesn't know */ }
+  }
+  return [n.getFullYear(), n.getMonth(), n.getDate(), n.getHours(), n.getMinutes(), n.getSeconds()];
+}
+function toWallNow() { return Date.UTC(...shopNow()); }
 function fmtDur(s) {
   if (s == null) return '-';
   s = Math.round(s);
@@ -693,7 +727,7 @@ const keyIso = k => { const p = keyParts(k); return `${p.y}-${pad(p.m)}-${pad(p.
 const keyMs = k => { const p = keyParts(k); return Date.UTC(p.y, p.m - 1, p.d); };
 const keyLabel = k => { const p = keyParts(k); const dt = new Date(Date.UTC(p.y, p.m - 1, p.d)); return `${T.weekdays[dt.getUTCDay()]} ${p.d} ${T.months[p.m - 1]}`; };
 const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
-const todayDate = () => { const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); };
+const todayDate = () => { const [y, m, d] = shopNow(); return new Date(y, m, d); };
 const isoToDate = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
 const dateToIso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const fmtDateShort = d => `${d.getDate()} ${T.months[d.getMonth()]} ${d.getFullYear()}`;
@@ -798,32 +832,64 @@ function normalizeZoneDoc(d, dateKey, docId) {
 /* ------------------------------------------------------------------ */
 /* Loading data (Firestore, or generated demo data)                    */
 /* ------------------------------------------------------------------ */
-const cache = new Map(); /* dateKey -> { bikes, zones, nDocs } */
+const cache = new Map(); /* dateKey -> { bikes, zones, nDocs }, for SHOP_ID */
 let db = null, FS = null, AU = null, auth = null;
 let devices = null; /* names under track_visits/{SHOP_ID}/devices; null = list again */
+let shops = []; /* [{ id, name, tz }] this login can see: its own, or every shop for the owner */
+const SHOP_KEY = 'washReportShop';
 
-async function listDevices() {
+const shopInfo = snap => { const d = snap.data() || {}; return { id: snap.id, name: d.name || snap.id, tz: d.timezone || null }; };
+
+/* A shop login's own shop (its "shop" claim, read fresh so a change on the
+   Settings page counts at once). Without one, every shop: only the owner's
+   login may list them, anyone else is refused (permission-denied). */
+async function loadShops(user) {
+  const { collection, doc, getDoc, getDocs } = FS;
+  const own = user ? (await user.getIdTokenResult(true)).claims.shop : SHOP_ID;
+  if (own) return [shopInfo(await getDoc(doc(db, 'track_visits', own)))];
+  const snap = await getDocs(collection(db, 'track_visits'));
+  return snap.docs.filter(x => x.data().shop_id).map(shopInfo).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function useShop(s) {
+  SHOP_ID = s.id; SHOP_NAME = s.name; SHOP_TZ = s.tz;
+  cache.clear(); devices = null;
+  try { localStorage.setItem(SHOP_KEY, s.id); } catch (e) { /* storage blocked */ }
+  const pick = $('#shopPick');
+  pick.hidden = shops.length < 2;
+  pick.innerHTML = shops.map(x => `<option value="${esc(x.id)}" ${x.id === s.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('');
+  $('#shopName').textContent = shops.length < 2 ? s.name : '';
+}
+
+async function listDevices(shop) {
   const { collection, getDocs } = FS;
-  const snap = await getDocs(collection(db, 'track_visits', SHOP_ID, 'devices'));
+  const snap = await getDocs(collection(db, 'track_visits', shop, 'devices'));
   return snap.docs.map(x => x.id);
 }
 
-async function fetchDay(key) {
+async function fetchDay(key, shop, names) {
   if (DEMO) return demoDay(key);
   const { collection, getDocs, query, where } = FS;
-  const read = (device, sub) => getDocs(query(collection(db, 'track_visits', SHOP_ID, 'devices', device, 'days', key, sub),
+  const read = (device, sub) => getDocs(query(collection(db, 'track_visits', shop, 'devices', device, 'days', key, sub),
     where('source', 'in', ALLOWED_SOURCES)));
-  const [a, b] = await Promise.all(['vehicles', 'zones'].map(sub => Promise.all(devices.map(device => read(device, sub)))));
+  const [a, b] = await Promise.all(['vehicles', 'zones'].map(sub => Promise.all(names.map(device => read(device, sub)))));
   const rows = snaps => snaps.flatMap(s => s.docs.map(x => ({ id: x.id, data: x.data() })));
   return { vehicles: rows(a), zones: rows(b) };
 }
 
+/* A load still running when the owner picks another shop is dropped, so the
+   old shop's days never land in the new shop's cache. */
 async function loadDays(keys, force = false) {
-  if (!DEMO && (force || !devices)) devices = await listDevices();
+  const shop = SHOP_ID;
+  let names = devices;
+  if (!DEMO && (force || !names)) {
+    names = await listDevices(shop);
+    if (shop === SHOP_ID) devices = names;
+  }
   const todo = keys.filter(k => force || !cache.has(k));
-  const results = await Promise.all(todo.map(async k => [k, await fetchDay(k)]));
+  const results = await Promise.all(todo.map(async k => [k, await fetchDay(k, shop, names)]));
   let docs = 0;
-  for (const [k, r] of results) {
+  for (const [k, r] of shop === SHOP_ID ? results : []) {
     const nDocs = r.vehicles.length + r.zones.length;
     docs += nDocs;
     cache.set(k, {
@@ -988,6 +1054,7 @@ function computeRange() {
 function setStatus(msg, cls = '') { const s = $('#status'); s.textContent = msg; s.className = 'status ' + cls; }
 
 async function refreshData(force = false) {
+  if (!DEMO && !shops.length) return; /* still finding out which shop this login is for */
   const r = computeRange();
   if (r.error) { state.keys = []; setStatus(r.error, 'warn'); $('#panel').innerHTML = ''; return; }
   if (force) { r.keys.forEach(k => cache.delete(k)); cache.delete(dkey(todayDate())); devices = null; }
@@ -1044,7 +1111,7 @@ const yInt = { beginAtZero: true, ticks: { precision: 0 } };
 /* ------------------------------------------------------------------ */
 /* Rendering                                                           */
 /* ------------------------------------------------------------------ */
-const TABS = ['summary', 'visits', 'timeline', 'hours', 'durations', 'zones', 'feeds', 'now', 'cctv', 'weekly'];
+const TABS = ['summary', 'visits', 'timeline', 'hours', 'durations', 'zones', 'feeds', 'now', ...(SHOW_CCTV ? ['cctv'] : []), 'weekly'];
 
 function buildTabs() {
   $('#tabs').innerHTML = TABS.map(id =>
@@ -1390,7 +1457,7 @@ async function rNow() {
   try {
     if (!cache.has(key)) { const st = await loadDays([key]); setStatus(T.readToday(st.docs, dataSrc())); }
   } catch (e) { handleLoadError(e); return; }
-  if (state.tab !== 'now') return;
+  if (state.tab !== 'now' || !cache.has(key)) return; /* left the tab, or picked another shop */
   const here = (cache.get(key) || {}).bikes.filter(b => b.present);
   const fresh = here.filter(b => !isStale(b)), stale = here.filter(isStale);
   const tbl = (list, stale) => `<div class="tw"><table class="num"><thead><tr><th>${T.feed}</th><th>${T.cols.bike}</th><th>${T.cols.plate}</th><th>${T.zone}</th><th>${T.cols.in}</th><th class="r">${stale ? T.openFor : T.soFar}</th></tr></thead><tbody>
@@ -1507,7 +1574,7 @@ const fmtMoney = v => `${CURRENCY} ${v.toLocaleString(T.locale, { maximumFractio
 
 async function rWeekly() {
   if (!state.wk.from) { const [x, y] = lastWeekRange(); state.wk.from = dateToIso(x); state.wk.to = dateToIso(y); }
-  const fromIso = state.wk.from, toIso = state.wk.to, from = isoToDate(fromIso), to = isoToDate(toIso);
+  const fromIso = state.wk.from, toIso = state.wk.to, from = isoToDate(fromIso), to = isoToDate(toIso), shop = SHOP_ID;
   const n = Math.round((to - from) / 864e5) + 1;
   const keys = keysBetween(from, to), prevKeys = keysBetween(addDays(from, -n), addDays(from, -1));
   $('#panel').innerHTML = `
@@ -1542,7 +1609,7 @@ async function rWeekly() {
   $('#wkPrint').onclick = printWeekly;
   try {
     const st = await loadDays([...prevKeys, ...keys]);
-    if (state.tab !== 'weekly' || state.wk.from !== fromIso || state.wk.to !== toIso) return;
+    if (state.tab !== 'weekly' || state.wk.from !== fromIso || state.wk.to !== toIso || shop !== SHOP_ID) return;
     setStatus(T.weeklyStatus(st, dataSrc()));
   } catch (e) {
     if (state.tab === 'weekly') handleLoadError(e);
@@ -1556,8 +1623,8 @@ function fillWeekly(keys, prevKeys) {
   const from = isoToDate(state.wk.from), to = isoToDate(state.wk.to);
   const bikes = bikesIn(keys), prev = bikesIn(prevKeys), rows = dayRows(keys);
   const price = parseFloat(state.col.price), priced = isFinite(price) && price >= 0;
-  const now = new Date();
-  const generated = `${fmtDateShort(now)}, ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const [y, mo, d, h, mi] = shopNow();
+  const generated = `${fmtDateShort(new Date(y, mo, d))}, ${pad(h)}:${pad(mi)}`;
   const head = `<header class="sh-head">
       <div><div class="sh-shop">${esc(SHOP_NAME)}</div><div class="sh-title">${T.weeklyTitle}${DEMO ? ` &middot; <b>${T.sampleNotReal}</b>` : ''}</div></div>
       <div class="sh-meta"><b>${esc(rangeText(from, to))}</b>${T.generated} ${esc(generated)}</div>
@@ -1718,9 +1785,18 @@ function authMessage(e) {
   return T.authFailed(e && e.message ? e.message : T.unknownError);
 }
 
-function startApp() {
+async function startApp(user) {
   show('app');
   buildTabs();
+  if (!DEMO) {
+    $('#panel').innerHTML = '';
+    setStatus(T.loading);
+    try { shops = await loadShops(user); } catch (e) { handleLoadError(e); return; }
+    if (!shops.length) shops = [{ id: SHOP_ID, name: SHOP_NAME, tz: null }];
+    let last = null;
+    try { last = localStorage.getItem(SHOP_KEY); } catch (e) { /* storage blocked */ }
+    useShop(shops.find(x => x.id === last) || shops[0]);
+  }
   refreshData();
 }
 
@@ -1744,10 +1820,10 @@ async function boot() {
     else { show('app'); setStatus(T.firebaseFailed, 'err'); }
     return;
   }
-  if (!REQUIRE_LOGIN) { $('#whoBox').hidden = true; startApp(); return; }
+  if (!REQUIRE_LOGIN) { $('#whoBox').hidden = true; startApp(null); return; }
   AU.onAuthStateChanged(auth, user => {
-    if (user) { $('#who').textContent = user.email || T.signedIn; startApp(); }
-    else { stopCctv(); cache.clear(); devices = null; state.keys = []; $('#pw').value = ''; show('auth'); }
+    if (user) { $('#who').textContent = user.email || T.signedIn; startApp(user); }
+    else { stopCctv(); cache.clear(); devices = null; shops = []; state.keys = []; $('#pw').value = ''; show('auth'); }
   });
 }
 
@@ -1768,6 +1844,10 @@ const doSignOut = async () => { try { await AU.signOut(auth); } catch (e) { cons
 $('#signOut').onclick = doSignOut;
 $('#deniedOut').onclick = doSignOut;
 
+$('#shopPick').onchange = e => {
+  const s = shops.find(x => x.id === e.target.value);
+  if (s) { useShop(s); refreshData(); }
+};
 $('#tabs').onclick = e => {
   const b = e.target.closest('[data-t]');
   if (!b) return;
@@ -1775,7 +1855,7 @@ $('#tabs').onclick = e => {
   $('#tabs').querySelectorAll('button').forEach(x => x.setAttribute('aria-selected', x === b));
   stopCctv();
   document.body.classList.toggle('cctv-mode', state.tab === 'cctv');
-  if (state.keys.length || ['now', 'cctv', 'weekly'].includes(state.tab)) renderPanel();
+  if ((DEMO || shops.length) && (state.keys.length || ['now', 'cctv', 'weekly'].includes(state.tab))) renderPanel();
 };
 /* Back on the CCTV tab after looking away: ask for pictures again right away. */
 document.addEventListener('visibilitychange', () => { if (cctv.timer && !document.hidden) cctvTick(); });
