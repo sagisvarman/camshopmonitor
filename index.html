@@ -9,7 +9,8 @@ SETUP
  2. Firebase Console > Authentication: enable Google and/or Email/Password,
     add your Vercel domain under Settings > Authorized domains, add users.
  3. Publish the Firestore security rules (see the chat reply): read-only,
-    allowlisted emails only, all client writes denied.
+    allowlisted emails only, all client writes denied except the CCTV tab's
+    track_visits/{shop}/cctv_watch/latest (field "at" = request.time only).
  4. Deploy this one file to Vercel (CLI: `vercel --prod`, or connect a Git repo).
 
 DEMO MODE
@@ -19,7 +20,10 @@ DEMO MODE
 DATA
  - Reads only track_visits/{SHOP_ID}/devices/{device}/days/{DD-MM-YYYY}/vehicles
    and .../zones, only where source is "overlay", "emulator" or "video"
-   (recordings counted on Colab by video_processor.py). Never writes.
+   (recordings counted on Colab by video_processor.py). Never writes, except
+   the CCTV tab's "someone is watching" time (see cctv_feed.py).
+ - The CCTV tab listens to track_visits/{SHOP_ID}/cctv/{device}: each emulator's
+   plain camera picture, sent every few seconds only while the tab is open.
  - The devices are listed from track_visits/{SHOP_ID}/devices. Date documents do
    not exist, so every date key in the range is built and read directly for each
    device (max 60 days). Results are cached in memory until you press Refresh.
@@ -146,6 +150,18 @@ tr.detail td{background:#f6f9fd!important;white-space:normal}
 .heat .h{color:var(--muted);text-align:center}
 .heat .d{color:var(--muted);padding-right:8px;display:flex;align-items:center}
 .bar{height:8px;background:var(--wash);min-width:2px}
+
+/* cctv */
+body.cctv-mode .controls{display:none!important}
+.cam-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:14px;margin:0 0 14px}
+.cam{margin:0;border:1px solid var(--line);background:#fff}
+.cam img{display:block;width:100%;aspect-ratio:16/9;object-fit:contain;background:#111;cursor:zoom-in}
+.cam img:not([src]){visibility:hidden}
+.cam figcaption{display:flex;gap:8px;flex-wrap:wrap;align-items:baseline;padding:7px 10px;font-size:13px}
+.cam figcaption span{color:var(--muted)}
+.cam .dot{width:8px;height:8px;border-radius:50%;background:var(--bad);align-self:center}
+.cam.stale img{opacity:.55}
+.cam.stale .dot{background:var(--off)}
 
 /* weekly report: an A4 sheet on screen, the only thing printed */
 body.wk-mode #presets,body.wk-mode #customDates{display:none!important}
@@ -332,7 +348,7 @@ const I18N = {
       record: ['record', 'records'], visit: ['visit', 'visits'], arrival: ['arrival', 'arrivals'], wash: ['wash', 'washes'] },
     reasons: {},
     tabs: { summary: 'Summary', visits: 'Visit log', timeline: 'Timeline', hours: 'Busy hours', durations: 'Stay times',
-      zones: 'Zones', feeds: 'Feeds', now: 'Present now', weekly: 'Report' },
+      zones: 'Zones', feeds: 'Feeds', now: 'Present now', cctv: 'CCTV', weekly: 'Report' },
     stayBuckets: ['under 3m', '3 to 5m', '5 to 8m', '8 to 12m', '12 to 20m', '20 to 40m', '40m or more'],
 
     /* page text, by data-i18n and data-i18n-label */
@@ -420,6 +436,18 @@ const I18N = {
     nowSub: (key, h) => `Based on today's records (${key}). Bikes marked present for more than ${h} hours are listed separately because the detector probably missed their departure.`,
     noneHere: 'No bikes present', noneHereText: 'Nothing is marked present right now.',
 
+    /* cctv */
+    cctvSub: s => `The camera's picture, a new one every ${s} seconds while this tab is open. Click a picture for full screen.`,
+    cctvNone: 'No camera pictures yet',
+    cctvNoneText: 'The first picture comes a few seconds after this tab opens. If none comes, the counting computer may be off (outside shop hours) or stopped.',
+    cctvAlt: n => `Camera ${n}`, cctvLive: t => `Live, ${t}`, cctvAt: t => `Picture from ${t}`,
+    cctvWaking: 'Asking the camera for a new picture...',
+    cctvStale: (t, ago) => `No new picture since ${t} (${ago} ago). The counting computer may be off or stopped.`,
+    cctvPaused: m => `Paused after ${m} minutes, so a forgotten tab can't use up the free Firebase quota.`,
+    cctvResume: 'Keep watching',
+    cctvNoWrite: 'Could not ask the camera for pictures: the Firestore rules do not allow it yet.',
+    cctvDemo: 'No camera in demo data', cctvDemoText: 'The camera picture only shows with real Firebase data.',
+
     /* weekly report */
     generate: 'Generate', lastWeekBtn: 'Last week', thisWeekBtn: 'This week', totalRow: 'Total',
     needDatesReport: 'Choose a start and an end date, then press Generate.',
@@ -466,7 +494,7 @@ const I18N = {
       record: ['catatan', 'catatan'], visit: ['kunjungan', 'kunjungan'], arrival: ['kedatangan', 'kedatangan'], wash: ['motor dicuci', 'motor dicuci'] },
     reasons: { detector_stopped: 'detektor berhenti', recovered: 'pemulihan' },
     tabs: { summary: 'Ringkasan', visits: 'Riwayat kunjungan', timeline: 'Linimasa', hours: 'Jam sibuk', durations: 'Durasi',
-      zones: 'Zona', feeds: 'Feed', now: 'Di lokasi sekarang', weekly: 'Laporan' },
+      zones: 'Zona', feeds: 'Feed', now: 'Di lokasi sekarang', cctv: 'CCTV', weekly: 'Laporan' },
     stayBuckets: ['di bawah 3m', '3 sampai 5m', '5 sampai 8m', '8 sampai 12m', '12 sampai 20m', '20 sampai 40m', '40m atau lebih'],
 
     title: 'Laporan cuci motor', language: 'Bahasa',
@@ -543,6 +571,17 @@ const I18N = {
     openFor: 'Tercatat selama', soFar: 'Lama di lokasi', heroNow: () => 'motor di lokasi sekarang',
     nowSub: (key, h) => `Berdasarkan catatan hari ini (${key}). Motor yang tercatat di lokasi lebih dari ${h} jam ditampilkan terpisah karena detektor kemungkinan melewatkan kepergiannya.`,
     noneHere: 'Tidak ada motor di lokasi', noneHereText: 'Saat ini tidak ada motor yang tercatat di lokasi.',
+
+    cctvSub: s => `Gambar kamera, diperbarui setiap ${s} detik selama tab ini terbuka. Klik gambar untuk layar penuh.`,
+    cctvNone: 'Belum ada gambar kamera',
+    cctvNoneText: 'Gambar pertama muncul beberapa detik setelah tab ini dibuka. Jika tidak muncul, komputer penghitung mungkin mati (di luar jam toko) atau berhenti.',
+    cctvAlt: n => `Kamera ${n}`, cctvLive: t => `Langsung, ${t}`, cctvAt: t => `Gambar dari ${t}`,
+    cctvWaking: 'Meminta gambar baru dari kamera...',
+    cctvStale: (t, ago) => `Tidak ada gambar baru sejak ${t} (${ago} yang lalu). Komputer penghitung mungkin mati atau berhenti.`,
+    cctvPaused: m => `Dijeda setelah ${m} menit agar tab yang terlupa tidak menghabiskan kuota gratis Firebase.`,
+    cctvResume: 'Lanjut menonton',
+    cctvNoWrite: 'Tidak bisa meminta gambar dari kamera: aturan Firestore belum mengizinkannya.',
+    cctvDemo: 'Tidak ada kamera di data contoh', cctvDemoText: 'Gambar kamera hanya tampil dengan data Firebase asli.',
 
     generate: 'Buat laporan', lastWeekBtn: 'Minggu lalu', thisWeekBtn: 'Minggu ini', totalRow: 'Total',
     needDatesReport: 'Pilih tanggal mulai dan tanggal akhir, lalu tekan Buat laporan.',
@@ -911,7 +950,7 @@ function demoDay(key) {
 /* State                                                               */
 /* ------------------------------------------------------------------ */
 /* The weekly report's price per wash is kept in this browser only: the
-   page never writes to Firestore. */
+   page writes nothing to Firestore but the CCTV tab's watch time. */
 const PRICE_KEY = 'washReportPrice';
 function savedPrice() { try { return localStorage.getItem(PRICE_KEY) || ''; } catch (e) { return ''; } }
 
@@ -1004,7 +1043,7 @@ const yInt = { beginAtZero: true, ticks: { precision: 0 } };
 /* ------------------------------------------------------------------ */
 /* Rendering                                                           */
 /* ------------------------------------------------------------------ */
-const TABS = ['summary', 'visits', 'timeline', 'hours', 'durations', 'zones', 'feeds', 'now', 'weekly'];
+const TABS = ['summary', 'visits', 'timeline', 'hours', 'durations', 'zones', 'feeds', 'now', 'cctv', 'weekly'];
 
 function buildTabs() {
   $('#tabs').innerHTML = TABS.map(id =>
@@ -1016,8 +1055,10 @@ const noData = () => emptyBox(T.noBikes, T.noBikesText(state.rangeText));
 
 function renderPanel() {
   destroyCharts();
+  stopCctv();
   document.body.classList.toggle('wk-mode', state.tab === 'weekly');
-  const fn = { summary: rSummary, visits: rVisits, timeline: rTimeline, hours: rHours, durations: rDurations, zones: rZones, feeds: rFeeds, now: rNow, weekly: rWeekly }[state.tab];
+  document.body.classList.toggle('cctv-mode', state.tab === 'cctv');
+  const fn = { summary: rSummary, visits: rVisits, timeline: rTimeline, hours: rHours, durations: rDurations, zones: rZones, feeds: rFeeds, now: rNow, cctv: rCctv, weekly: rWeekly }[state.tab];
   fn();
 }
 
@@ -1360,7 +1401,86 @@ async function rNow() {
     ${stale.length ? `<h2 style="margin:22px 0 8px;font-size:18px">${T.possiblyStale} (${stale.length})</h2>${tbl(stale, true)}` : ''}`;
 }
 
-/* ---- 9. Weekly report (printable) ---- */
+/* ---- 9. CCTV ---- */
+/* Each emulator's plain camera picture, at track_visits/{SHOP_ID}/cctv/{device}.
+   The counting computer only sends them while someone is watching: this tab
+   writes the time to cctv_watch/latest every CCTV_BEAT_SECONDS while it's open
+   and visible (see cctv_feed.py), and stops by itself after CCTV_WATCH_MINUTES
+   so a forgotten tab can't use up Firestore's free daily writes. */
+const CCTV_FRAME_SECONDS = 5;     /* cctv_feed.FRAME_SECONDS */
+const CCTV_BEAT_SECONDS = 20;
+const CCTV_BEAT_GAP_SECONDS = 45; /* cctv_feed.WATCHED_FOR_SECONDS */
+const CCTV_LIVE_SECONDS = 20;     /* an older picture isn't called live */
+const CCTV_WAKE_SECONDS = 30;     /* how long the first new picture may take */
+const CCTV_WATCH_MINUTES = 10;
+const cctv = { unsub: null, timer: null, frames: {}, startedAt: 0, beatAt: 0, wakeAt: 0, paused: false };
+
+function stopCctv() {
+  if (cctv.unsub) { cctv.unsub(); cctv.unsub = null; }
+  clearInterval(cctv.timer); cctv.timer = null;
+}
+
+function rCctv() {
+  setStatus('');
+  if (DEMO) { $('#panel').innerHTML = emptyBox(T.cctvDemo, T.cctvDemoText); return; }
+  const { collection, onSnapshot } = FS;
+  Object.assign(cctv, { frames: {}, startedAt: Date.now(), beatAt: 0, paused: false });
+  $('#panel').innerHTML = `<p class="sub">${esc(T.cctvSub(CCTV_FRAME_SECONDS))}</p>
+    <div id="cctvNote"></div><div id="cctvGrid" class="cam-grid"></div>`;
+  $('#cctvGrid').onclick = e => { const img = e.target.closest('img'); if (img && img.requestFullscreen) img.requestFullscreen().catch(() => {}); };
+  cctv.unsub = onSnapshot(collection(db, 'track_visits', SHOP_ID, 'cctv'), snap => {
+    snap.docs.forEach(d => {
+      const x = d.data(), at = x.at && x.at.toMillis();
+      if (!x.jpeg || !at || (cctv.frames[d.id] || {}).at === at) return;
+      cctv.frames[d.id] = { at, time: (x.time_str || '').slice(11, 19), src: 'data:image/jpeg;base64,' + x.jpeg.toBase64() };
+    });
+    drawCctv();
+  }, e => { stopCctv(); handleLoadError(e); });
+  cctv.timer = setInterval(cctvTick, 5000);
+  cctvTick();
+}
+
+/* Says "watching" when it's due, and keeps the pictures' live/old labels current. */
+function cctvTick() {
+  if (!$('#cctvGrid')) { stopCctv(); return; } /* something else replaced the panel */
+  const now = Date.now();
+  if (!cctv.paused && now - cctv.startedAt > CCTV_WATCH_MINUTES * 60e3) cctv.paused = true;
+  if (!cctv.paused && !document.hidden && now - cctv.beatAt >= CCTV_BEAT_SECONDS * 1000) {
+    /* After a gap the counting computer has stopped sending: give it time to start again. */
+    if (now - cctv.beatAt > CCTV_BEAT_GAP_SECONDS * 1000) cctv.wakeAt = now;
+    cctv.beatAt = now;
+    const { doc, setDoc, serverTimestamp } = FS;
+    setDoc(doc(db, 'track_visits', SHOP_ID, 'cctv_watch', 'latest'), { at: serverTimestamp() })
+      .catch(e => { console.error(e); if (state.tab === 'cctv') setStatus(T.cctvNoWrite, 'err'); });
+  }
+  drawCctv();
+}
+
+function drawCctv() {
+  const grid = $('#cctvGrid'), note = $('#cctvNote');
+  if (!grid) return;
+  if (cctv.paused && !$('#cctvResume')) {
+    note.innerHTML = `<p class="note">${esc(T.cctvPaused(CCTV_WATCH_MINUTES))} <button class="btn" id="cctvResume" type="button">${esc(T.cctvResume)}</button></p>`;
+    $('#cctvResume').onclick = () => { note.innerHTML = ''; Object.assign(cctv, { startedAt: Date.now(), paused: false }); cctvTick(); };
+  }
+  const names = Object.keys(cctv.frames).sort();
+  if (!names.length) { grid.dataset.names = ''; grid.innerHTML = emptyBox(T.cctvNone, T.cctvNoneText); return; }
+  if (grid.dataset.names !== names.join('/')) {
+    grid.dataset.names = names.join('/');
+    grid.innerHTML = names.map(n => `<figure class="cam"><img alt="${esc(T.cctvAlt(n))}"><figcaption><i class="dot"></i><b>${esc(n)}</b><span></span></figcaption></figure>`).join('');
+  }
+  const now = Date.now(), waking = now - cctv.wakeAt < CCTV_WAKE_SECONDS * 1000;
+  names.forEach((n, i) => {
+    const f = cctv.frames[n], fig = grid.children[i], img = fig.querySelector('img');
+    const age = (now - f.at) / 1000, live = !cctv.paused && age < CCTV_LIVE_SECONDS;
+    if (img.dataset.at !== String(f.at)) { img.src = f.src; img.dataset.at = f.at; }
+    fig.classList.toggle('stale', !live);
+    fig.querySelector('span').textContent = live ? T.cctvLive(f.time) : cctv.paused ? T.cctvAt(f.time)
+      : waking ? T.cctvWaking : T.cctvStale(f.time, fmtDur(age));
+  });
+}
+
+/* ---- 10. Weekly report (printable) ---- */
 /* Any From/To date range (max MAX_DAYS), independent of the range picker; the
    same number of days just before it is loaded too, for the comparison.
    Printing hides everything but .sheet. */
@@ -1625,7 +1745,7 @@ async function boot() {
   if (!REQUIRE_LOGIN) { $('#whoBox').hidden = true; startApp(); return; }
   AU.onAuthStateChanged(auth, user => {
     if (user) { $('#who').textContent = user.email || T.signedIn; startApp(); }
-    else { cache.clear(); devices = null; state.keys = []; $('#pw').value = ''; show('auth'); }
+    else { stopCctv(); cache.clear(); devices = null; state.keys = []; $('#pw').value = ''; show('auth'); }
   });
 }
 
@@ -1651,8 +1771,12 @@ $('#tabs').onclick = e => {
   if (!b) return;
   state.tab = b.dataset.t;
   $('#tabs').querySelectorAll('button').forEach(x => x.setAttribute('aria-selected', x === b));
-  if (state.keys.length || state.tab === 'now' || state.tab === 'weekly') renderPanel();
+  stopCctv();
+  document.body.classList.toggle('cctv-mode', state.tab === 'cctv');
+  if (state.keys.length || ['now', 'cctv', 'weekly'].includes(state.tab)) renderPanel();
 };
+/* Back on the CCTV tab after looking away: ask for pictures again right away. */
+document.addEventListener('visibilitychange', () => { if (cctv.timer && !document.hidden) cctvTick(); });
 $('#presets').onclick = e => {
   const b = e.target.closest('[data-p]');
   if (!b) return;
