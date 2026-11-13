@@ -118,7 +118,7 @@ export const I18N = {
     cctvDemo: 'No camera in demo data', cctvDemoText: 'The camera picture only shows with real Firebase data.',
 
     /* review */
-    rvLead: "Check the day's bikes. Tick two or more photos of the same bike and press Same bike. Tick a bike that only parked and press Not a wash. Every fix can be undone.",
+    rvLead: "Check the day's bikes. Tick two or more photos of the same bike and press Same bike. Tick a bike that only parked and press Not a wash. Compare shows the ticked bikes side by side. Every fix can be undone.",
     rvPrevDay: 'Previous day', rvNextDay: 'Next day', rvLoadingDay: "Loading the day's bikes and photos.",
     rvStatus: (n, p) => `${plural(n, 'bike')} counted, ${p} with a photo.`,
     rvNoBikes: 'No bikes counted on this day', rvNoBikesText: 'Pick another day.',
@@ -134,6 +134,9 @@ export const I18N = {
     rvWaitingBadge: 'Waiting', rvDone: 'Done: the counts are updated.', rvFailed: msg => `Couldn't make that fix: ${msg}`,
     rvSendFailed: 'Could not send the fix: the Firestore rules do not allow it yet.',
     rvDemoNote: 'Demo data: fixes only change this page.',
+    rvViews: 'View', rvAllBikes: 'All bikes', rvCompare: 'Compare', rvCompareN: n => `Compare (${n})`,
+    rvCompareEmpty: 'Nothing to compare yet', rvCompareHint: 'Tick two or more bikes in All bikes, then press Compare.',
+    rvBack: 'Back to all bikes', rvDropCompare: 'Take out of the comparison',
 
     /* weekly report */
     generate: 'Generate', lastWeekBtn: 'Last week', thisWeekBtn: 'This week', totalRow: 'Total',
@@ -271,7 +274,7 @@ export const I18N = {
     cctvNoWrite: 'Tidak bisa meminta gambar dari kamera: aturan Firestore belum mengizinkannya.',
     cctvDemo: 'Tidak ada kamera di data contoh', cctvDemoText: 'Gambar kamera hanya tampil dengan data Firebase asli.',
 
-    rvLead: 'Periksa motor hari ini. Centang dua foto atau lebih dari motor yang sama, lalu tekan Motor sama. Centang motor yang hanya parkir, lalu tekan Bukan cucian. Setiap perbaikan bisa dibatalkan.',
+    rvLead: 'Periksa motor hari ini. Centang dua foto atau lebih dari motor yang sama, lalu tekan Motor sama. Centang motor yang hanya parkir, lalu tekan Bukan cucian. Bandingkan menampilkan motor yang dicentang berdampingan. Setiap perbaikan bisa dibatalkan.',
     rvPrevDay: 'Hari sebelumnya', rvNextDay: 'Hari berikutnya', rvLoadingDay: 'Memuat motor dan foto hari ini.',
     rvStatus: (n, p) => `${n} motor terhitung, ${p} dengan foto.`,
     rvNoBikes: 'Tidak ada motor terhitung pada hari ini', rvNoBikesText: 'Pilih hari lain.',
@@ -287,6 +290,9 @@ export const I18N = {
     rvWaitingBadge: 'Menunggu', rvDone: 'Selesai: hitungan sudah diperbarui.', rvFailed: msg => `Perbaikan gagal: ${msg}`,
     rvSendFailed: 'Tidak bisa mengirim perbaikan: aturan Firestore belum mengizinkannya.',
     rvDemoNote: 'Data contoh: perbaikan hanya mengubah halaman ini.',
+    rvViews: 'Tampilan', rvAllBikes: 'Semua motor', rvCompare: 'Bandingkan', rvCompareN: n => `Bandingkan (${n})`,
+    rvCompareEmpty: 'Belum ada yang dibandingkan', rvCompareHint: 'Centang dua motor atau lebih di Semua motor, lalu tekan Bandingkan.',
+    rvBack: 'Kembali ke semua motor', rvDropCompare: 'Keluarkan dari perbandingan',
 
     generate: 'Buat laporan', lastWeekBtn: 'Minggu lalu', thisWeekBtn: 'Minggu ini', totalRow: 'Total',
     needDatesReport: 'Pilih tanggal mulai dan tanggal akhir, lalu tekan Buat laporan.',

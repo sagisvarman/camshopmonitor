@@ -1,7 +1,8 @@
 /* Review tab: one day's counted bikes with their photos, for the shop to fix
    at the end of the day. Tick two or more photos of one bike and press Same
    bike, or tick a bike that only parked and press Not a wash; each fix can
-   be undone.
+   be undone. Compare shows the ticked bikes' photos large, side by side, with
+   their details lined up under them, to decide there.
 
    The page doesn't change the counts itself. It adds a request to
    track_visits/{shop}/edit_requests, and the counting computer makes it
@@ -234,7 +235,8 @@ function drawReview() {
     rv.msg ? `<p class="note rv-msg ${rv.msg.cls}">${esc(rv.msg.text)}</p>` : ''
   ].join('');
   rv.live = live;
-  if (!cards.length && !removed.length) { body.innerHTML = emptyBox(T.rvNoBikes, T.rvNoBikesText); return; }
+  if (state.rv.view === 'compare') { drawCompare(); return; }
+  if (!cards.length && !removed.length) { body.innerHTML = emptyBox(T.rvNoBikes, T.rvNoBikesText); drawViewSwitch(); return; }
   body.innerHTML = `
     <div class="rv-grid">${cards.map(c => cardHtml(c, sel, waiting)).join('')}</div>
     ${removed.length ? `<section class="rv-removed"><h2>${esc(T.rvRemoved(removed.length))}</h2>
@@ -243,36 +245,100 @@ function drawReview() {
   drawActions();
 }
 
+/* The ticked bikes, in the order they came (the first is what a merge keeps). */
+const chosenCards = () => [...rv.live.values()].filter(c => state.rv.sel.has(c.key));
+
+const mergeFixes = chosen => {
+  const [target, ...rest] = chosen;
+  return rest.map(c => ({ action: 'merge', device: c.device, session_id: c.session, source: c.source,
+    track_id: idValue(c.id), target: idValue(target.id) }));
+};
+const removeFix = c => ({ action: 'delete', device: c.device, session_id: c.session, source: c.source, track_id: idValue(c.id) });
+
+function confirmMerge(chosen) {
+  return confirm(T.rvConfirmMerge(chosen.map(c => `#${c.id}`).join(', '), chosen[0].id));
+}
+
+/* All bikes | Compare (n), above the cards. */
+function drawViewSwitch() {
+  const n = chosenCards().length;
+  document.querySelectorAll('#rvView [data-v]').forEach(b => {
+    b.setAttribute('aria-pressed', b.dataset.v === state.rv.view);
+    if (b.dataset.v === 'compare') b.textContent = n ? T.rvCompareN(n) : T.rvCompare;
+  });
+}
+
 /* The bar for the ticked bikes - redrawn alone when a box is ticked. */
 function drawActions() {
+  drawViewSwitch();
   const bar = $('#rvActions');
   if (!bar) return;
-  const sel = state.rv.sel, chosen = [...rv.live.values()].filter(c => sel.has(c.key));
+  const sel = state.rv.sel, chosen = chosenCards();
   const mixed = new Set(chosen.map(c => c.session)).size > 1;
   bar.innerHTML = chosen.length ? `<div class="rv-actions" role="toolbar">
       <b>${esc(T.rvSelected(chosen.length))}</b>
       <button class="btn primary" id="rvMerge" type="button" ${chosen.length < 2 || mixed || rv.busy ? 'disabled' : ''}>${esc(T.rvSame)}</button>
       <button class="btn" id="rvRemove" type="button" ${rv.busy ? 'disabled' : ''}>${esc(T.rvRemove)}</button>
+      <button class="btn" id="rvCompare" type="button" ${chosen.length < 2 ? 'disabled' : ''}>${esc(T.rvCompare)}</button>
       <button class="btn" id="rvClear" type="button">${esc(T.rvClear)}</button>
       ${mixed ? `<span class="rv-meta">${esc(T.rvDiffSession)}</span>` : ''}</div>` : '';
   if (chosen.length) {
-    const ids = chosen.map(c => `#${c.id}`).join(', ');
-    $('#rvMerge').onclick = () => {
-      const [target, ...rest] = chosen;
-      if (!confirm(T.rvConfirmMerge(ids, target.id))) return;
-      sendFixes(rest.map(c => ({ action: 'merge', device: c.device, session_id: c.session, source: c.source,
-        track_id: idValue(c.id), target: idValue(target.id) })));
-    };
+    $('#rvMerge').onclick = () => { if (confirmMerge(chosen)) sendFixes(mergeFixes(chosen)); };
     $('#rvRemove').onclick = () => {
-      if (!confirm(T.rvConfirmRemove(ids))) return;
-      sendFixes(chosen.map(c => ({ action: 'delete', device: c.device, session_id: c.session, source: c.source, track_id: idValue(c.id) })));
+      if (!confirm(T.rvConfirmRemove(chosen.map(c => `#${c.id}`).join(', ')))) return;
+      sendFixes(chosen.map(removeFix));
     };
+    $('#rvCompare').onclick = () => showView('compare');
     $('#rvClear').onclick = () => { sel.clear(); drawReview(); };
   }
 }
 
+function showView(view) {
+  state.rv.view = view;
+  drawReview();
+  $('#rvView').scrollIntoView({ block: 'nearest' });
+}
+
+/* The ticked bikes side by side: big photos, and the same facts on the same
+   lines under each, so they read across. */
+function drawCompare() {
+  const body = $('#rvBody'), chosen = chosenCards();
+  drawViewSwitch();
+  if (chosen.length < 2) {
+    body.innerHTML = `${emptyBox(T.rvCompareEmpty, T.rvCompareHint)}
+      <p style="text-align:center"><button class="btn" id="cmpBack" type="button">${esc(T.rvBack)}</button></p>`;
+    $('#cmpBack').onclick = () => showView('all');
+    return;
+  }
+  const mixed = new Set(chosen.map(c => c.session)).size > 1;
+  const rows = [
+    [T.cols.in, c => fmtHMS(c.b.firstIn)],
+    [T.cols.out, c => (c.b.present ? T.present : fmtHMS(c.b.lastOut))],
+    [T.cols.dur, c => (c.b.hasCompleted ? fmtDur(c.b.stay) : '-')],
+    [T.cols.zone, c => (c.b.zones.length ? c.b.zones.map(z => T.zoneN(z)).join(', ') : T.offMats)],
+    [T.cols.plate, c => c.b.plate || '-'],
+    [T.cols.color, c => c.b.color || '-'],
+    ...(store.devices && store.devices.length > 1 ? [[T.cols.feed, c => c.b.feed.name]] : [])
+  ];
+  body.innerHTML = `<div class="cmp" style="--cols:${Math.min(chosen.length, 3)}">${chosen.map(c => `
+    <article class="cmp-col">
+      <div class="cmp-head"><b>#${esc(c.id)}</b>
+        <button class="btn small" type="button" data-drop="${esc(c.key)}" title="${esc(T.rvDropCompare)}" aria-label="${esc(T.rvDropCompare)}">&times;</button></div>
+      ${photoHtml(c.photo, c.id)}
+      <dl class="cmp-facts">${rows.map(([label, value]) => `<dt>${esc(label)}</dt><dd class="num">${esc(value(c))}</dd>`).join('')}</dl>
+      ${c.merged.length ? `<div class="cmp-merged">${c.merged.map(m => `+ #${esc(m.id)}`).join(', ')}</div>` : ''}
+      <button class="btn" type="button" data-remove-one="${esc(c.key)}" ${rv.busy ? 'disabled' : ''}>${esc(T.rvRemove)}</button>
+    </article>`).join('')}</div>
+    <div class="rv-actions" role="toolbar">
+      <button class="btn primary" id="cmpMerge" type="button" ${mixed || rv.busy ? 'disabled' : ''}>${esc(T.rvSame)}</button>
+      <button class="btn" id="cmpBack" type="button">${esc(T.rvBack)}</button>
+      ${mixed ? `<span class="rv-meta">${esc(T.rvDiffSession)}</span>` : ''}</div>`;
+  $('#cmpMerge').onclick = () => { if (confirmMerge(chosen)) sendFixes(mergeFixes(chosen)); };
+  $('#cmpBack').onclick = () => showView('all');
+}
+
 /* ---- sending fixes ---- */
-async function sendFixes(fixes) {
+async function sendFixes(fixes, afterSent = () => state.rv.sel.clear()) {
   rv.busy = true; rv.msg = null; drawReview();
   try {
     if (DEMO) demoFixes(fixes);
@@ -285,7 +351,8 @@ async function sendFixes(fixes) {
         await addDoc(collection(db, 'track_visits', SHOP_ID, 'edit_requests'), data);
       }
     }
-    state.rv.sel.clear();
+    afterSent();
+    if (state.rv.sel.size < 2) state.rv.view = 'all';
   } catch (e) {
     console.error(e);
     rv.msg = { cls: 'err', text: T.rvSendFailed };
@@ -316,21 +383,39 @@ export async function rReview() {
       <button class="btn" id="rvPrev" type="button" aria-label="${esc(T.rvPrevDay)}" title="${esc(T.rvPrevDay)}">&#8249;</button>
       <input type="date" id="rvDay" value="${keyIso(key)}" max="${keyIso(today)}" aria-label="${esc(T.day)}">
       <button class="btn" id="rvNext" type="button" aria-label="${esc(T.rvNextDay)}" title="${esc(T.rvNextDay)}" ${key === today ? 'disabled' : ''}>&#8250;</button>
+      <div class="seg" id="rvView" role="group" aria-label="${esc(T.rvViews)}">
+        <button type="button" data-v="all" aria-pressed="${state.rv.view !== 'compare'}">${esc(T.rvAllBikes)}</button>
+        <button type="button" data-v="compare" aria-pressed="${state.rv.view === 'compare'}">${esc(T.rvCompare)}</button>
+      </div>
     </div>
     <p class="sub">${esc(T.rvLead)}</p>
     <div id="rvMsg"></div>
     <div id="rvBody">${emptyBox(T.loading, T.rvLoadingDay)}</div>
     <dialog class="rv-lightbox" id="rvBox"><img alt=""></dialog>`;
-  const go = d => { state.rv.day = dkey(d); state.rv.sel.clear(); rv.msg = null; rReview(); };
+  const go = d => { state.rv.day = dkey(d); state.rv.sel.clear(); state.rv.view = 'all'; rv.msg = null; rReview(); };
   const day = isoToDate(keyIso(key));
   $('#rvPrev').onclick = () => go(addDays(day, -1));
   $('#rvNext').onclick = () => go(addDays(day, 1));
   $('#rvDay').onchange = e => { if (e.target.value && e.target.value <= dateToIso(todayDate())) go(isoToDate(e.target.value)); };
+  $('#rvView').onclick = e => { const b = e.target.closest('[data-v]'); if (b) showView(b.dataset.v); };
   const box = $('#rvBox');
   box.onclick = () => box.close();
   $('#rvBody').onclick = e => {
     const img = e.target.closest('[data-zoom]');
     if (img) { box.querySelector('img').src = rv.zoom[+img.dataset.zoom]; box.showModal(); return; }
+    const drop = e.target.closest('[data-drop]');
+    if (drop) {
+      state.rv.sel.delete(drop.dataset.drop);
+      if (state.rv.sel.size < 2) state.rv.view = 'all';
+      drawReview();
+      return;
+    }
+    const one = e.target.closest('[data-remove-one]');
+    if (one) {
+      const c = rv.live.get(one.dataset.removeOne);
+      if (c && confirm(T.rvConfirmRemove(`#${c.id}`))) sendFixes([removeFix(c)], () => state.rv.sel.delete(c.key));
+      return;
+    }
     const undo = e.target.closest('[data-undo]');
     if (undo) {
       const [session, id, device, source] = JSON.parse(undo.dataset.undo);

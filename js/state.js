@@ -18,7 +18,7 @@ export const state = {
   v: { feed: '', source: '', zone: '', washOnly: false, q: '', sort: 'in', dir: 'desc', limit: PAGE_SIZE, open: new Set() },
   tl: { day: '' }, dur: { washOnly: false, skipFlagged: false }, zn: { byFeed: false },
   wk: { from: '', to: '' }, col: { price: savedPrice() },
-  rv: { day: '', sel: new Set() }
+  rv: { day: '', sel: new Set(), view: 'all' }
 };
 
 
