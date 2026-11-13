@@ -1,6 +1,6 @@
 /* Demo data: same shapes as Firestore, generated deterministically. */
 import { ALLOWED_SOURCES } from './config.js';
-import { keyParts, pad, todayDate } from './util.js';
+import { esc, fmtHMS, keyParts, pad, todayDate } from './util.js';
 
 /* ------------------------------------------------------------------ */
 /* Demo data: same shapes as Firestore, generated deterministically     */
@@ -112,4 +112,22 @@ export function demoDay(key) {
   const zones = [...zoneMap.entries()].map(([id, data]) => ({ id, data }));
   const ok = x => ALLOWED_SOURCES.includes(x.data.source);
   return { vehicles: vehicles.filter(ok), zones: zones.filter(ok) };
+}
+
+/* A stand-in photo for the Review tab: the two mats, and a bike on its zone
+   in its colour, with its box. */
+const DEMO_PAINT = { black: '#222', red: '#c62828', white: '#eeeeee', blue: '#1565c0', grey: '#888', silver: '#bbb',
+  green: '#2e7d32', yellow: '#f9a825', pink: '#e88ca8' };
+export function demoPhoto(b) {
+  const x = { 2: 425, 3: 560 }[b.zone] || 215;
+  const paint = DEMO_PAINT[String(b.color || '').split(' + ')[0]] || ['#222', '#c62828', '#1565c0', '#888'][hashStr(b.id) % 4];
+  const label = esc(`#${b.trackId}  ${b.firstIn != null ? fmtHMS(b.firstIn) : ''}`);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+    <rect width="640" height="360" fill="#d8d3ca"/><rect width="640" height="110" fill="#f2f2f2"/>
+    <rect x="120" y="225" width="195" height="135" fill="#2b2b2b"/><rect x="325" y="225" width="205" height="135" fill="#2b2b2b"/>
+    <g transform="translate(${x - 40},140)"><rect x="18" y="0" width="44" height="150" rx="20" fill="${paint}" stroke="#111" stroke-width="3"/>
+      <rect x="0" y="38" width="80" height="10" rx="5" fill="#333"/><circle cx="40" cy="168" r="20" fill="#111"/></g>
+    <rect x="${x - 62}" y="128" width="124" height="222" fill="none" stroke="#e53935" stroke-width="3"/>
+    <text x="16" y="34" font-family="Arial, sans-serif" font-size="22" fill="#333">${label}</text></svg>`;
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 }

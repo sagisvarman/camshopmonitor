@@ -11,6 +11,7 @@ import { rDurations } from './tabs/durations.js';
 import { rFeeds } from './tabs/feeds.js';
 import { rHours } from './tabs/hours.js';
 import { rNow } from './tabs/now.js';
+import { rReview, stopReview } from './tabs/review.js';
 import { rSummary } from './tabs/summary.js';
 import { rTimeline } from './tabs/timeline.js';
 import { rVisits } from './tabs/visits.js';
@@ -59,7 +60,7 @@ export function handleLoadError(e) {
 /* ------------------------------------------------------------------ */
 /* Rendering                                                           */
 /* ------------------------------------------------------------------ */
-export const TABS = ['summary', 'visits', 'timeline', 'hours', 'durations', 'zones', 'feeds', 'now', ...(SHOW_CCTV ? ['cctv'] : []), 'weekly'];
+export const TABS = ['summary', 'visits', 'review', 'timeline', 'hours', 'durations', 'zones', 'feeds', 'now', ...(SHOW_CCTV ? ['cctv'] : []), 'weekly'];
 
 export function buildTabs() {
   $('#tabs').innerHTML = TABS.map(id =>
@@ -72,8 +73,11 @@ export const noData = () => emptyBox(T.noBikes, T.noBikesText(state.rangeText));
 export function renderPanel() {
   destroyCharts();
   stopCctv();
+  if (state.tab !== 'review') stopReview();
   document.body.classList.toggle('wk-mode', state.tab === 'weekly');
   document.body.classList.toggle('cctv-mode', state.tab === 'cctv');
-  const fn = { summary: rSummary, visits: rVisits, timeline: rTimeline, hours: rHours, durations: rDurations, zones: rZones, feeds: rFeeds, now: rNow, cctv: rCctv, weekly: rWeekly }[state.tab];
+  document.body.classList.toggle('rv-mode', state.tab === 'review');
+  const fn = { summary: rSummary, visits: rVisits, review: rReview, timeline: rTimeline, hours: rHours, durations: rDurations,
+    zones: rZones, feeds: rFeeds, now: rNow, cctv: rCctv, weekly: rWeekly }[state.tab];
   fn();
 }

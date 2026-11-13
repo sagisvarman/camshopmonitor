@@ -1,17 +1,27 @@
 <!doctype html>
 <!--
 =====================================================================
-WASH MAT REPORT: single-file Firestore reporting page
+WASH MAT REPORT: Firestore reporting page (static, no build step)
 =====================================================================
+FILES
+ index.html      the markup; css/app.css the styles
+ js/main.js      sign-in, boot, event wiring (the page's entry module)
+ js/config.js    Firebase project, sign-in, currency, limits, demo mode
+ js/i18n.js      page text in English and Bahasa Indonesia
+ js/data.js      reading Firestore and normalising its documents
+ js/shop.js, firebase.js, state.js, render.js, charts.js, util.js, demo.js
+ js/tabs/*.js    one module per tab
+
 SETUP
- 1. Fill in FIREBASE_CONFIG near the top of the <script> (apiKey, authDomain,
-    projectId, appId). Firebase Console > Project settings > Your apps > Web app.
+ 1. Fill in FIREBASE_CONFIG in js/config.js (apiKey, authDomain, projectId,
+    appId). Firebase Console > Project settings > Your apps > Web app.
  2. Firebase Console > Authentication: enable Google and/or Email/Password,
     add your Vercel domain under Settings > Authorized domains.
  3. Publish the Firestore security rules (firestore.rules, next to app.py):
     read-only, all client writes denied except the CCTV tab's
-    track_visits/{shop}/cctv_watch/latest (field "at" = request.time only).
- 4. Deploy this one file to Vercel (CLI: `vercel --prod`, or connect a Git repo).
+    track_visits/{shop}/cctv_watch/latest (field "at" = request.time only)
+    and the Review tab's fix requests (track_visits/{shop}/edit_requests).
+ 4. Deploy the folder to Vercel (CLI: `vercel --prod`, or connect a Git repo).
 
 SHOPS AND LOGINS
  - Each shop's logins are made on the Mac app's Settings page (shop_logins.py).
@@ -30,7 +40,14 @@ DATA
  - Reads only track_visits/{SHOP_ID}/devices/{device}/days/{DD-MM-YYYY}/vehicles
    and .../zones, only where source is "overlay", "emulator" or "video"
    (recordings counted on Colab by video_processor.py). Never writes, except
-   the CCTV tab's "someone is watching" time (see cctv_feed.py).
+   the CCTV tab's "someone is watching" time (see cctv_feed.py) and the
+   Review tab's fix requests.
+ - The Review tab shows one day's bikes with their photos (.../days/{date}/
+   photos, sent by review_photos.py) and lets the shop merge two ids that were
+   one bike, or take out a bike that only parked. It adds a request to
+   track_visits/{SHOP_ID}/edit_requests; the counting computer makes the fix
+   (edit_requests.py) and rewrites the bikes' documents. Which ids were merged
+   or taken out, and by whom: .../devices/{device}/edits/{session}.
  - The CCTV tab listens to track_visits/{SHOP_ID}/cctv/{device}: each emulator's
    plain camera picture, sent every few seconds only while the tab is open.
  - The devices are listed from track_visits/{SHOP_ID}/devices. Date documents do

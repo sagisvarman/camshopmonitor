@@ -7,6 +7,7 @@ import { buildTabs, handleLoadError, refreshData, renderPanel } from './render.j
 import { loadShops, SHOP_ID, SHOP_KEY, SHOP_NAME, store, useShop } from './shop.js';
 import { setStatus, state } from './state.js';
 import { cctv, cctvTick, stopCctv } from './tabs/cctv.js';
+import { forgetReviewDay, stopReview } from './tabs/review.js';
 import { $, addDays, dateToIso, isoToDate, keysBetween, todayDate } from './util.js';
 
 export function setLang(l) {
@@ -68,7 +69,7 @@ export async function boot() {
   if (!REQUIRE_LOGIN) { $('#whoBox').hidden = true; startApp(null); return; }
   AU.onAuthStateChanged(auth, user => {
     if (user) { $('#who').textContent = user.email || T.signedIn; startApp(user); }
-    else { stopCctv(); cache.clear(); store.devices = null; store.shops = []; state.keys = []; $('#pw').value = ''; show('auth'); }
+    else { stopCctv(); stopReview(); cache.clear(); store.devices = null; store.shops = []; state.keys = []; $('#pw').value = ''; show('auth'); }
   });
 }
 
@@ -99,8 +100,10 @@ $('#tabs').onclick = e => {
   state.tab = b.dataset.t;
   $('#tabs').querySelectorAll('button').forEach(x => x.setAttribute('aria-selected', x === b));
   stopCctv();
+  if (state.tab !== 'review') stopReview();
   document.body.classList.toggle('cctv-mode', state.tab === 'cctv');
-  if ((DEMO || store.shops.length) && (state.keys.length || ['now', 'cctv', 'weekly'].includes(state.tab))) renderPanel();
+  document.body.classList.toggle('rv-mode', state.tab === 'review');
+  if ((DEMO || store.shops.length) && (state.keys.length || ['now', 'cctv', 'weekly', 'review'].includes(state.tab))) renderPanel();
 };
 /* Back on the CCTV tab after looking away: ask for pictures again right away. */
 document.addEventListener('visibilitychange', () => { if (cctv.timer && !document.hidden) cctvTick(); });
@@ -118,6 +121,7 @@ $('#presets').onclick = e => {
 };
 $('#applyRange').onclick = () => { state.customStart = $('#dFrom').value; state.customEnd = $('#dTo').value; refreshData(); };
 $('#refresh').onclick = () => {
+  if (state.tab === 'review' && state.rv.day) forgetReviewDay(state.rv.day);
   if (state.tab === 'weekly' && state.wk.from) {
     const x = isoToDate(state.wk.from), y = isoToDate(state.wk.to), n = Math.round((y - x) / 864e5) + 1;
     keysBetween(addDays(x, -n), y).forEach(k => cache.delete(k));
