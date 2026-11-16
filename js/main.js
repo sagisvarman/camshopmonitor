@@ -69,21 +69,13 @@ export async function boot() {
   if (!REQUIRE_LOGIN) { $('#whoBox').hidden = true; startApp(null); return; }
   AU.onAuthStateChanged(auth, user => {
     if (user) { $('#who').textContent = user.email || T.signedIn; startApp(user); }
-    else { stopCctv(); stopReview(); cache.clear(); store.devices = null; store.shops = []; state.keys = []; $('#pw').value = ''; show('auth'); }
+    else { stopCctv(); stopReview(); cache.clear(); store.devices = null; store.shops = []; state.keys = []; show('auth'); }
   });
 }
 
 $('#googleBtn').onclick = async () => {
   $('#authMsg').textContent = '';
   try { await AU.signInWithPopup(auth, new AU.GoogleAuthProvider()); }
-  catch (e) { $('#authMsg').textContent = authMessage(e); }
-};
-$('#pwForm').onsubmit = async ev => {
-  ev.preventDefault();
-  const email = $('#em').value.trim(), pw = $('#pw').value;
-  if (!email || !pw) { $('#authMsg').textContent = T.enterEmailPw; return; }
-  $('#authMsg').textContent = '';
-  try { await AU.signInWithEmailAndPassword(auth, email, pw); }
   catch (e) { $('#authMsg').textContent = authMessage(e); }
 };
 export const doSignOut = async () => { try { await AU.signOut(auth); } catch (e) { console.error(e); } };

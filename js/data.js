@@ -109,6 +109,9 @@ export const cache = new Map(); /* dateKey -> { bikes, zones, nDocs }, for SHOP_
 
 export async function listDevices(shop) {
   const { collection, getDocs } = FS;
+  /* Only some phones: those listed (it can't list the collection) */
+  const mine = store.access && store.access[shop];
+  if (mine && !mine.includes('*')) return mine.slice();
   const snap = await getDocs(collection(db, 'track_visits', shop, 'devices'));
   return snap.docs.map(x => x.id);
 }

@@ -15,18 +15,31 @@ export let SHOP_TZ = null;
 /* devices: names under track_visits/{SHOP_ID}/devices, null = list again.
    shops: [{ id, name, tz }] this login can see: its own, or every shop for
    the owner. */
-export const store = { devices: null, shops: [] };
+export const store = { devices: null, shops: [], access: null };
 export const SHOP_KEY = 'washReportShop';
 
 export const shopInfo = snap => { const d = snap.data() || {}; return { id: snap.id, name: d.name || snap.id, tz: d.timezone || null }; };
 
-/* A shop login's own shop (its "shop" claim, read fresh so a change on the
-   Settings page counts at once). Without one, every shop: only the owner's
-   login may list them, anyone else is refused (permission-denied). */
+/* What this login may see: {shop: ['*'] | [phone, ...]} from its "access"
+   claim (an older login's single "shop" claim = that shop, all phones), read
+   fresh so a change on the Accounts page counts at once. null = the owner's
+   login: every shop and phone. A client may only read what it's listed for;
+   the rules refuse the rest (permission-denied). */
 export async function loadShops(user) {
   const { collection, doc, getDoc, getDocs } = FS;
-  const own = user ? (await user.getIdTokenResult(true)).claims.shop : SHOP_ID;
-  if (own) return [shopInfo(await getDoc(doc(db, 'track_visits', own)))];
+  store.access = null;
+  if (user) {
+    const c = (await user.getIdTokenResult(true)).claims;
+    const a = { ...(c.access || {}) };
+    if (c.shop && !a[c.shop]) a[c.shop] = ['*'];
+    if (Object.keys(a).length) store.access = a;
+  } else if (SHOP_ID) {
+    store.access = { [SHOP_ID]: ['*'] };
+  }
+  if (store.access) {
+    const snaps = await Promise.all(Object.keys(store.access).map(id => getDoc(doc(db, 'track_visits', id))));
+    return snaps.filter(x => x.exists()).map(shopInfo).sort((a, b) => a.name.localeCompare(b.name));
+  }
   const snap = await getDocs(collection(db, 'track_visits'));
   return snap.docs.filter(x => x.data().shop_id).map(shopInfo).sort((a, b) => a.name.localeCompare(b.name));
 }
