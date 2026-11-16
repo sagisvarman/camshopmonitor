@@ -391,7 +391,7 @@ export async function rReview() {
     <p class="sub">${esc(T.rvLead)}</p>
     <div id="rvMsg"></div>
     <div id="rvBody">${emptyBox(T.loading, T.rvLoadingDay)}</div>
-    <dialog class="rv-lightbox" id="rvBox"><img alt=""></dialog>`;
+    <dialog class="rv-lightbox" id="rvBox"><button type="button" class="rv-nav prev" aria-label="Previous">&#8249;</button><img alt=""><button type="button" class="rv-nav next" aria-label="Next">&#8250;</button></dialog>`;
   const go = d => { state.rv.day = dkey(d); state.rv.sel.clear(); state.rv.view = 'all'; rv.msg = null; rReview(); };
   const day = isoToDate(keyIso(key));
   $('#rvPrev').onclick = () => go(addDays(day, -1));
@@ -399,10 +399,31 @@ export async function rReview() {
   $('#rvDay').onchange = e => { if (e.target.value && e.target.value <= dateToIso(todayDate())) go(isoToDate(e.target.value)); };
   $('#rvView').onclick = e => { const b = e.target.closest('[data-v]'); if (b) showView(b.dataset.v); };
   const box = $('#rvBox');
-  box.onclick = () => box.close();
+  let at = 0, x0 = null;
+  const show = i => {
+    if (!rv.zoom.length) return;
+    at = (i + rv.zoom.length) % rv.zoom.length;
+    box.querySelector('img').src = rv.zoom[at];
+    box.classList.toggle('single', rv.zoom.length < 2);
+  };
+  box.onclick = e => {
+    const nav = e.target.closest('.rv-nav');
+    if (nav) { show(at + (nav.classList.contains('next') ? 1 : -1)); return; }
+    box.close();
+  };
+  box.onkeydown = e => {
+    if (e.key === 'ArrowLeft') show(at - 1);
+    else if (e.key === 'ArrowRight') show(at + 1);
+  };
+  box.ontouchstart = e => { x0 = e.touches[0].clientX; };
+  box.ontouchend = e => {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0; x0 = null;
+    if (Math.abs(dx) > 50) { show(at + (dx < 0 ? 1 : -1)); e.preventDefault(); }
+  };
   $('#rvBody').onclick = e => {
     const img = e.target.closest('[data-zoom]');
-    if (img) { box.querySelector('img').src = rv.zoom[+img.dataset.zoom]; box.showModal(); return; }
+    if (img) { show(+img.dataset.zoom); box.showModal(); return; }
     const drop = e.target.closest('[data-drop]');
     if (drop) {
       state.rv.sel.delete(drop.dataset.drop);

@@ -163,6 +163,8 @@ body.rv-mode #presets,body.rv-mode #customDates{display:none!important}
 .rv-lightbox{border:0;padding:0;background:transparent;max-width:96vw;max-height:96vh}
 .rv-lightbox::backdrop{background:rgba(0,0,0,.82)}
 .rv-lightbox img{display:block;max-width:96vw;max-height:92vh;cursor:zoom-out}
+.rv-nav{position:fixed;top:50%;transform:translateY(-50%);width:44px;height:64px;border:0;border-radius:8px;background:rgba(0,0,0,.5);color:#fff;font-size:36px;line-height:1;cursor:pointer}
+.rv-nav.prev{left:8px}.rv-nav.next{right:8px}.rv-lightbox.single .rv-nav{display:none}
 
 /* weekly report: an A4 sheet on screen, the only thing printed */
 body.wk-mode #presets,body.wk-mode #customDates{display:none!important}
