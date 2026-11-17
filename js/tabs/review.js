@@ -31,6 +31,7 @@ const rv = {
   extra: new Map(),   /* shop|dayKey -> { photos: Map(docId -> photo), edits: Map(session -> { device, tracks }) } */
   pending: new Map(), /* request id -> request, while pending or being made */
   unsub: null, msg: null, busy: false, zoom: [], live: new Map() /* the drawn cards, by doc id */,
+  blind: false /* the requests can't be watched: the page won't update by itself */,
   demoEdits: new Map() /* demo only: dayKey -> Map(session -> { device, tracks }) */
 };
 
@@ -41,6 +42,7 @@ const idValue = id => (/^\d+$/.test(String(id)) ? Number(id) : String(id));
 export function stopReview() {
   if (rv.unsub) { rv.unsub(); rv.unsub = null; }
   rv.pending = new Map();
+  rv.blind = false;
 }
 
 /* Read the day again on the next draw (Refresh). */
@@ -89,20 +91,35 @@ async function loadReviewDay(key) {
 }
 
 /* Pending requests, live while the tab is open: a bike with one is marked
-   Waiting, and when one is answered the day is read again. */
+   Waiting, and when one is answered the day is read again. A login with only
+   some phones may read only their requests (firestore.rules), so it watches
+   each phone's. If they can't be watched, the tab says so instead of going
+   quiet. */
 function watchRequests() {
   if (DEMO || rv.unsub) return;
   const { collection, onSnapshot, query, where } = FS;
-  const shop = SHOP_ID;
-  rv.unsub = onSnapshot(query(collection(db, 'track_visits', shop, 'edit_requests'), where('status', 'in', ['pending', 'working'])),
-    snap => {
-      if (shop !== SHOP_ID || state.tab !== 'review') return;
-      const now = new Map(snap.docs.map(d => [d.id, d.data()]));
-      const answered = [...rv.pending.keys()].filter(id => !now.has(id));
-      rv.pending = now;
-      if (answered.length) whenAnswered(answered);
-      else drawReview();
-    }, e => { console.error(e); stopReview(); });
+  const shop = SHOP_ID, col = collection(db, 'track_visits', shop, 'edit_requests');
+  const open = where('status', 'in', ['pending', 'working']);
+  const mine = store.access && store.access[shop];
+  const queries = mine && !mine.includes('*') ? mine.map(d => query(col, where('device', '==', d), open)) : [query(col, open)];
+  const parts = queries.map(() => new Map());
+  const stops = queries.map((q, i) => onSnapshot(q, snap => {
+    parts[i] = new Map(snap.docs.map(d => [d.id, d.data()]));
+    if (shop !== SHOP_ID || state.tab !== 'review') return;
+    const now = new Map(parts.flatMap(p => [...p]));
+    const answered = [...rv.pending.keys()].filter(id => !now.has(id));
+    rv.pending = now;
+    rv.blind = false;
+    if (answered.length) whenAnswered(answered);
+    else drawReview();
+  }, e => {
+    console.error(e);
+    stopReview();
+    if (shop !== SHOP_ID || state.tab !== 'review') return;
+    rv.blind = true;
+    drawReview();
+  }));
+  rv.unsub = () => stops.forEach(stop => stop());
 }
 
 async function whenAnswered(ids) {
@@ -179,14 +196,17 @@ function photoHtml(photo, id, cls = '') {
   return `<img class="${cls}" src="${photo.src}" alt="${esc(T.rvPhotoAlt(id))}" data-zoom="${rv.zoom.length - 1}" loading="lazy">`;
 }
 
-function undoButton(x) {
-  return `<button class="btn small" type="button" data-undo="${esc(JSON.stringify([x.session, x.id, x.device, x.source]))}">${esc(T.rvUndo)}</button>`;
+/* None while that bike's fix is waiting or one is being sent, so one press
+   sends one undo. */
+function undoButton(x, waiting) {
+  if (waiting.has(docId(x.session, x.id))) return '';
+  return `<button class="btn small" type="button" data-undo="${esc(JSON.stringify([x.session, x.id, x.device, x.source]))}" ${rv.busy ? 'disabled' : ''}>${esc(T.rvUndo)}</button>`;
 }
 
-function mergedHtml(c) {
+function mergedHtml(c, waiting) {
   return c.merged.map(m => `<div class="rv-sub">${photoHtml(m.photo, m.id)}
     <div class="rv-subtext"><b>+ #${esc(m.id)}</b><span class="rv-meta">${esc(T.rvMergedBy(who(m.e), fmtWhen(m.e.at)))}</span></div>
-    ${undoButton(m)}</div>`).join('');
+    ${undoButton(m, waiting)}</div>`).join('');
 }
 
 function cardHtml(c, sel, waiting) {
@@ -202,7 +222,7 @@ function cardHtml(c, sel, waiting) {
         <span class="pill ${b.wash ? 'wash' : 'off'}">${esc(zones)}</span>${wait ? `<span class="pill wait">${esc(T.rvWaitingBadge)}</span>` : ''}</div>
       <div class="num">${fmtHMS(b.firstIn)} &rarr; ${esc(out)}${b.hasCompleted ? ` &middot; ${fmtDur(b.stay)}` : ''}</div>
       ${meta ? `<div class="rv-meta">${esc(meta)}</div>` : ''}
-      ${mergedHtml(c)}
+      ${mergedHtml(c, waiting)}
     </div></article>`;
 }
 
@@ -215,8 +235,8 @@ function removedHtml(c, waiting) {
       <div class="rv-head"><span>#${esc(c.id)}</span>${p.zone ? `<span class="pill off">${esc(T.zoneN(p.zone))}</span>` : ''}
         ${wait ? `<span class="pill wait">${esc(T.rvWaitingBadge)}</span>` : ''}</div>
       ${time ? `<div class="num">${esc(time)}</div>` : ''}
-      <div class="rv-sub rv-subtext"><span class="rv-meta">${esc(T.rvRemovedBy(who(c.e), fmtWhen(c.e.at)))}</span>${wait ? '' : undoButton(c)}</div>
-      ${mergedHtml(c)}
+      <div class="rv-sub rv-subtext"><span class="rv-meta">${esc(T.rvRemovedBy(who(c.e), fmtWhen(c.e.at)))}</span>${undoButton(c, waiting)}</div>
+      ${mergedHtml(c, waiting)}
     </div></article>`;
 }
 
@@ -231,6 +251,7 @@ function drawReview() {
   setStatus(T.rvStatus(cards.length, photoCount));
   $('#rvMsg').innerHTML = [
     DEMO ? `<p class="note">${esc(T.rvDemoNote)}</p>` : '',
+    rv.blind ? `<p class="note rv-msg err">${esc(T.rvWatchFailed)}</p>` : '',
     rv.pending.size ? `<p class="note">${esc(T.rvWaiting(rv.pending.size))}</p>` : '',
     rv.msg ? `<p class="note rv-msg ${rv.msg.cls}">${esc(rv.msg.text)}</p>` : ''
   ].join('');
