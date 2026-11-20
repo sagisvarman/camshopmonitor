@@ -4,10 +4,10 @@
 /* CONFIG: fill these in from Firebase Console > Project settings      */
 /* ------------------------------------------------------------------ */
 export const FIREBASE_CONFIG = {
-  apiKey: 'AIzaSyDYA1-u4mtkJxa1ywpooTv_eCvCL-bhj90',
-  authDomain: 'hoophood-photos.firebaseapp.com',
-  projectId: 'hoophood-photos',
-  appId: '1:744392382298:web:f11d9a794739d7868a4563'
+  apiKey: 'AIzaSyBKlMyKQvEkCehVsprPiRGFLVHlj0sZR-M',
+  authDomain: 'pantau-gethyred.firebaseapp.com',
+  projectId: 'pantau-gethyred',
+  appId: '1:140675971652:web:84ed63ba5c38332b401a11'
 };
 
 /* Set to true to put a sign-in screen in front of the reports (and use the
