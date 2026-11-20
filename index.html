@@ -75,7 +75,13 @@ DATA
 
 <div id="auth" class="auth-split" hidden>
   <div class="auth-art">
-    <div class="auth-brand" data-i18n="title">Pantau</div>
+    <a class="auth-brand" id="homeLink" href="/" aria-label="Pantau by hyred: home"><span data-i18n="title">Pantau</span> <span class="by-hyred"><span data-i18n="byHyred">by</span><img src="img/hyred-logo-wide.png" alt="hyred" width="344" height="128"></span></a>
+    <script>
+      /* Back to the landing page: the site's front page on Firebase Hosting
+         (this report is /app there), landing.html next to it elsewhere
+         (Vercel, where this report is the front page, or opened as a file). */
+      document.getElementById('homeLink').href = /\/app(\.html)?\/?$/.test(location.pathname) ? '/' : 'landing.html';
+    </script>
     <div class="auth-copy">
       <p class="auth-eyebrow" data-i18n="authEyebrow">For motorbike wash shops</p>
       <h2><span data-i18n="authH1a">Every bike on your wash mats,</span> <em data-i18n="authH1b">counted.</em></h2>
@@ -108,7 +114,7 @@ DATA
 
 <div id="app" class="wrap" hidden>
   <header class="top">
-    <div class="brand" data-i18n="title">Pantau</div>
+    <div class="brand-lockup"><div class="brand" data-i18n="title">Pantau</div> <span class="by-hyred"><span data-i18n="byHyred">by</span><img src="img/hyred-logo-wide.png" alt="hyred" width="344" height="128"></span></div>
     <span class="shop" id="shopName"></span>
     <select id="shopPick" aria-label="Shop" data-i18n-label="shop" hidden></select>
     <span class="tag" id="demoTag" data-i18n="demoData" hidden>Demo data</span>

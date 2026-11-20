@@ -21,7 +21,7 @@ export const I18N = {
     stayBuckets: ['under 3m', '3 to 5m', '5 to 8m', '8 to 12m', '12 to 20m', '20 to 40m', '40m or more'],
 
     /* page text, by data-i18n and data-i18n-label */
-    title: 'Pantau', language: 'Language',
+    title: 'Pantau', byHyred: 'by', language: 'Language',
     signInLead: 'Sign in to see motorbike detections and washes.', googleBtn: 'Sign in with Google',
     authEyebrow: 'For motorbike wash shops', authH1a: 'Every bike on your wash mats,', authH1b: 'counted.',
     authArtLead: 'Washes, arrival times and number plates, from the camera you already have.',
@@ -191,7 +191,7 @@ export const I18N = {
       zones: 'Zona', feeds: 'Feed', now: 'Di lokasi sekarang', cctv: 'CCTV', weekly: 'Laporan' },
     stayBuckets: ['di bawah 3m', '3 sampai 5m', '5 sampai 8m', '8 sampai 12m', '12 sampai 20m', '20 sampai 40m', '40m atau lebih'],
 
-    title: 'Pantau', language: 'Bahasa',
+    title: 'Pantau', byHyred: 'oleh', language: 'Bahasa',
     signInLead: 'Masuk untuk melihat deteksi motor dan cucian.', googleBtn: 'Masuk dengan Google',
     authEyebrow: 'Untuk usaha cuci motor', authH1a: 'Setiap motor di area cuci Anda,', authH1b: 'tercatat.',
     authArtLead: 'Jumlah cucian, jam datang dan plat nomor, dari kamera yang sudah Anda punya.',

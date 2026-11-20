@@ -53,15 +53,24 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
   backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
 .top .wrap{display:flex;align-items:center;gap:20px;min-height:64px}
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);font:700 22px/1 var(--display);margin-right:auto;white-space:nowrap}
+/* "by hyred": Pantau is a gethyred product */
+.by-hyred{display:inline-flex;align-items:center;gap:8px;padding-left:12px;border-left:1px solid var(--line);
+  font:500 13px/1 var(--body);color:var(--muted);letter-spacing:.02em}
+.by-hyred img{height:32px;width:auto;display:block}
+.foot-brand{display:inline-flex;align-items:center;gap:12px}
+.foot-brand .by-hyred img{height:28px}
 .nav{display:flex;gap:22px}
 .nav a{color:var(--muted);text-decoration:none;font-weight:500;font-size:15px}
 .nav a:hover{color:var(--ink)}
 .lang{display:inline-flex;border:1px solid var(--line);border-radius:3px;overflow:hidden}
 .lang button{font:600 13px/1 var(--body);letter-spacing:.06em;padding:8px 10px;border:0;background:transparent;color:var(--muted);cursor:pointer}
 .lang button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
-.top .btn{min-height:40px;padding:0 16px;font-size:15px}
+.top .btn{min-height:40px;padding:0 16px;font-size:15px;white-space:nowrap}
 @media (max-width:820px){.nav{display:none}}
-@media (max-width:420px){.brand{font-size:19px}.top .wrap{gap:12px}}
+@media (max-width:420px){.brand{font-size:19px}.top .wrap{gap:12px}.top .by-hyred{padding-left:8px;gap:6px}.top .by-hyred img{height:26px}}
+/* small Androids (360px and less): tighter, so Sign in stays on one line */
+@media (max-width:380px){.brand{font-size:18px;gap:8px}.top .wrap{gap:8px}.top .by-hyred{padding-left:7px;gap:4px;font-size:12px}
+  .top .by-hyred img{height:22px}.top .lang button{padding:8px 8px}.top .btn{padding:0 11px;font-size:14px}}
 
 /* hero */
 .hero{padding-block:56px 40px}
@@ -205,8 +214,9 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 
 <header class="top">
   <div class="wrap">
-    <a class="brand" href="#top" aria-label="Pantau">
+    <a class="brand" href="#top" aria-label="Pantau by hyred">
       <span data-i18n="brand">Pantau</span>
+      <span class="by-hyred"><span data-i18n="byHyred">by</span><img src="img/hyred-logo-wide.png" alt="hyred" width="344" height="128"></span>
     </a>
     <nav class="nav" aria-label="Sections">
       <a href="#how" data-i18n="navHow">How it works</a>
@@ -370,7 +380,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 
 <footer>
   <div class="wrap">
-    <span data-i18n="brand">Pantau</span>
+    <span class="foot-brand"><span data-i18n="brand">Pantau</span> <span class="by-hyred"><span data-i18n="byHyred">by</span><img src="img/hyred-logo-wide.png" alt="hyred" width="344" height="128"></span></span>
     <span data-i18n="foot">Motorbike wash counting from your CCTV.</span>
   </div>
 </footer>
@@ -386,7 +396,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
   const T = {
     en: {},
     id: {
-      brand: 'Pantau', navHow: 'Cara kerja', navReport: 'Laporan', navFaq: 'Pertanyaan', signIn: 'Masuk',
+      brand: 'Pantau', byHyred: 'oleh', navHow: 'Cara kerja', navReport: 'Laporan', navFaq: 'Pertanyaan', signIn: 'Masuk',
       eyebrow: 'Untuk usaha cuci motor', h1a: 'Setiap motor di area cuci Anda,', h1b: 'tercatat.',
       lede: 'Kamera CCTV Anda sudah melihat setiap motor. Kami mengubah gambarnya menjadi laporan: berapa motor yang dicuci, kapan datang, berapa lama tiap motor, dan plat nomornya jika terbaca.',
       ctaSignIn: 'Masuk ke laporan Anda', ctaHow: 'Lihat cara kerjanya',

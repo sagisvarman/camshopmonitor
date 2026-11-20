@@ -1,7 +1,7 @@
 {
   "hosting": {
     "public": "build",
-    "predeploy": "rm -rf build && mkdir build && cp -R css js landing-hero.jpg build/ && cp landing.html build/index.html && cp index.html build/app.html",
+    "predeploy": "rm -rf build && mkdir build && cp -R css js img landing-hero.jpg build/ && cp landing.html build/index.html && cp index.html build/app.html",
     "cleanUrls": true,
     "ignore": ["**/.*", "**/.*/**"],
     "headers": [

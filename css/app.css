@@ -1,9 +1,12 @@
 :root{
-  --bg:#ffffff; --surface:#ffffff; --ink:#222222; --muted:#666666; --line:#cfcfcf;
-  --wash:#2b6cb0; --wash-soft:#e3edf7; --off:#9a9a9a; --warn:#b26a00; --warn-soft:#fff3d6;
-  --bad:#b00020; --bad-soft:#fde8e8; --focus:#2b6cb0;
-  --head:Arial,Helvetica,sans-serif;
-  --body:Arial,Helvetica,sans-serif;
+  /* Pantau: white with red, the same look as the landing page */
+  --bg:#ffffff; --surface:#ffffff; --ink:#1c1515; --muted:#645a5a; --line:#ebe4e4; --edge:#d9cfcf;
+  --accent:#d4141c; --accent-dark:#b30f16; --accent-tint:#fdf5f5;   /* buttons, tabs, switches */
+  --wash:#2b6cb0; --wash-soft:#e3edf7;                               /* the data: wash bars and labels */
+  --off:#8a8080; --warn:#b26a00; --warn-soft:#fff3d6;
+  --bad:#8f0a10; --bad-soft:#fde8e8; --focus:#d4141c;
+  --head:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
@@ -18,25 +21,32 @@ button{cursor:pointer}
 
 /* header and controls */
 .top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0 12px;border-bottom:1px solid var(--line);margin-bottom:12px}
-.brand{font:700 20px/1 var(--head)}
-.top .shop{font:700 15px/1 var(--head);color:var(--muted)}
+.brand{font:700 26px/1 var(--head);letter-spacing:.01em}
+.top .shop{font:700 17px/1 var(--head);color:var(--muted)}
+/* "by hyred" beside the name: Pantau is a gethyred product */
+.brand-lockup{display:flex;align-items:center;gap:12px}
+.by-hyred{display:inline-flex;align-items:center;gap:8px;padding-left:12px;border-left:1px solid var(--line);
+  font:500 13px/1 var(--body);color:var(--muted);letter-spacing:.02em;white-space:nowrap}
+.by-hyred img{height:30px;width:auto;display:block}
+.brand-lockup + .shop{padding-left:12px;border-left:1px solid var(--line);line-height:30px}
 .tag{font-size:12px;font-weight:600;background:var(--warn-soft);color:var(--warn);padding:2px 8px;border:1px solid var(--warn)}
 .who{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);min-width:0}
 .who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:46vw}
 .top .lang{margin-left:auto}
 .lang button{padding:4px 10px;font-size:12px}
-.btn{background:#f3f3f3;border:1px solid #b5b5b5;border-radius:3px;padding:6px 12px}
-.btn:hover{background:#e8e8e8}
-.btn.primary{background:var(--wash);border-color:var(--wash);color:#fff}
-.btn.primary:hover{background:#245a96}
+.btn{background:#fff;border:1px solid var(--edge);border-radius:3px;padding:6px 12px;font-weight:500}
+.btn:hover{background:var(--accent-tint);border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent-dark);border-color:var(--accent-dark);color:#fff}
 .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.seg{display:inline-flex;border:1px solid #b5b5b5;border-radius:3px;overflow:hidden;background:#fff}
-.seg button{border:0;background:#f3f3f3;padding:6px 12px;border-right:1px solid #b5b5b5}
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:3px;overflow:hidden;background:#fff}
+.seg button{border:0;background:#fff;color:var(--muted);font-weight:500;padding:6px 12px;border-right:1px solid var(--edge)}
+.seg button:hover{color:var(--accent)}
 .seg button:last-child{border-right:0}
-.seg button[aria-pressed=true]{background:var(--wash);color:#fff;font-weight:700}
+.seg button[aria-pressed=true]{background:var(--accent);color:#fff;font-weight:600}
 .dates{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 input[type=date],input[type=text],input[type=email],input[type=password],input[type=search],input[type=number],select{
-  background:#fff;border:1px solid #b5b5b5;border-radius:3px;padding:6px 8px;min-width:0}
+  background:#fff;border:1px solid var(--edge);border-radius:3px;padding:6px 8px;min-width:0}
 .status{margin:10px 0 0;font-size:12px;color:var(--muted)}
 .status.warn{color:var(--warn)}
 .status.err{color:var(--bad)}
@@ -44,8 +54,8 @@ input[type=date],input[type=text],input[type=email],input[type=password],input[t
 /* tabs */
 .tabs{display:flex;gap:0;overflow-x:auto;border-bottom:1px solid var(--line);margin:12px 0 16px}
 .tabs button{flex:0 0 auto;border:0;background:transparent;padding:9px 14px;color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap}
-.tabs button:hover{color:var(--ink)}
-.tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--ink);font-weight:700}
+.tabs button:hover{color:var(--accent)}
+.tabs button[aria-selected=true]{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
 
 /* summary */
 .hero{font:700 22px/1.25 var(--head);margin:4px 0 4px}
@@ -72,9 +82,9 @@ th.r,td.r{text-align:right}
 th button{all:unset;cursor:pointer;display:inline-flex;gap:4px;align-items:center}
 th button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 tr.row{cursor:pointer}
-tr.row:hover td{background:#eef4fb}
+tr.row:hover td{background:var(--accent-tint)}
 tr.dim td{color:#999}
-tr.detail td{background:#f6f9fd!important;white-space:normal}
+tr.detail td{background:#fffafa!important;white-space:normal}
 .pill{display:inline-block;padding:0 6px;border-radius:2px;font-size:12px;font-weight:700}
 .pill.wash{background:var(--wash-soft);color:var(--wash)}
 .pill.off{background:#ececec;color:#555}
@@ -126,7 +136,7 @@ body.rv-mode #presets,body.rv-mode #customDates{display:none!important}
 .rv-bar{display:flex;gap:6px;align-items:center;margin:0 0 10px}
 .rv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:12px}
 .rv-card{position:relative;display:flex;flex-direction:column;border:1px solid var(--line);background:#fff}
-.rv-card.sel{outline:3px solid var(--wash);outline-offset:-2px}
+.rv-card.sel{outline:3px solid var(--accent);outline-offset:-2px}
 .rv-card.waiting{opacity:.7}
 .rv-card.removed{background:#fafafa}
 .rv-card.removed>img{filter:grayscale(.7)}
@@ -248,7 +258,13 @@ body.wk-mode #presets,body.wk-mode #customDates{display:none!important}
 .auth-art{position:relative;display:flex;flex-direction:column;justify-content:space-between;padding:32px 40px;color:#fff;
   background:linear-gradient(180deg,rgba(20,12,12,.55) 0%,rgba(20,12,12,.15) 35%,rgba(20,12,12,.85) 100%),
   url("../landing-hero.jpg") center/cover no-repeat #1a1e21}
-.auth-brand{font:700 22px/1 var(--a-display);letter-spacing:.01em}
+.auth-brand{display:flex;align-items:center;gap:14px;font:700 22px/1 var(--a-display);letter-spacing:.01em;
+  align-self:flex-start;color:inherit;text-decoration:none;border-radius:6px}
+.auth-brand:hover .by-hyred{box-shadow:0 0 0 2px rgba(255,255,255,.55)}
+.auth-brand:focus-visible{outline:2px solid #fff;outline-offset:4px}
+/* white card so the red logo stands out on the dark photo */
+.auth-brand .by-hyred{border:0;padding:6px 10px 6px 12px;background:#fff;border-radius:6px;color:var(--a-muted)}
+.auth-brand .by-hyred img{height:32px}
 .auth-copy{max-width:30em}
 .auth-copy h2{font:700 clamp(34px,4vw,54px)/1.05 var(--a-display);margin:10px 0 14px;text-wrap:balance}
 .auth-copy h2 em{font-style:normal;color:#ff4a52}
