@@ -141,10 +141,10 @@ html[lang="id"] .steps li::before{content:"Langkah " counter(step)}
 @media (max-width:980px){.reqs{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:560px){.reqs{grid-template-columns:minmax(0,1fr);gap:28px}}
 .req-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:40px 56px}
-.req-group{display:grid;gap:20px;align-content:start;min-width:0}
-.req-gh{font-size:26px;padding-top:14px;border-top:3px solid var(--wash)}
+.req-group{display:grid;gap:20px;align-content:start;min-width:0;padding:26px 24px;background:var(--bg);border:1px solid var(--line);border-top:4px solid var(--wash);border-radius:4px}
+.req-gh{font-size:26px}
 .req-groups .reqs{grid-template-columns:minmax(0,1fr);gap:28px}
-@media (max-width:760px){.req-groups{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){.req-groups{grid-template-columns:minmax(0,1fr);gap:24px}.req-group{padding:22px 18px}}
 
 /* report preview */
 .report{background:var(--surface);border-block:1px solid var(--line)}
