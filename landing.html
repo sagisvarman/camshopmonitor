@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wash Mat Report</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Your CCTV camera counts every motorbike on your wash mats. Open the report on your phone.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a camera feed is the hero; below it the page reads like the report itself, a sheet of plain facts, numbers in mono. */
+:root{
+  /* white and red, one look on every device */
+  --bg:#ffffff; --surface:#ffffff; --ink:#1c1515; --muted:#645a5a; --line:#ebe4e4;
+  --wash:#d4141c; --wash-ink:#ffffff; --wash-soft:#fdeaea;
+  --zone:#c98a00; --zone-soft:#fbf1d9; --zone-ink:#6a4800;
+  --off:#8a8080;
+  /* camera feed: always a dark video picture */
+  --feed-bg:#1a1e21; --feed-ink:#f3eeee; --feed-box:#ff3341; --feed-zone:#f2b632;
+  color-scheme:light;
+  --display:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --gutter-l:max(16px, env(safe-area-inset-left, 0px));
+  --gutter-r:max(16px, env(safe-area-inset-right, 0px));
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.6 var(--body);overflow-x:hidden}
+h1,h2,h3{font-family:var(--display);font-weight:700;line-height:1.05;margin:0;text-wrap:balance;letter-spacing:-.005em}
+p{margin:0}
+a{color:var(--wash)}
+:focus-visible{outline:2px solid var(--wash);outline-offset:3px}
+.num,.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.wrap{max-width:1160px;margin:0 auto;padding-left:var(--gutter-l);padding-right:var(--gutter-r)}
+.eyebrow{font:600 13px/1.2 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 20px;
+  font:600 16px/1 var(--body);text-decoration:none;border:1.5px solid var(--ink);color:var(--ink);background:transparent;
+  border-radius:3px;cursor:pointer;transition:background-color .15s,color .15s,transform .15s}
+.btn:hover{background:var(--ink);color:var(--bg)}
+.btn.primary{background:var(--wash);border-color:var(--wash);color:var(--wash-ink)}
+.btn.primary:hover{filter:brightness(.92);background:var(--wash);color:var(--wash-ink)}
+
+/* header */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top, 0px);z-index:10;background:var(--bg)}
+.top{position:sticky;top:env(safe-area-inset-top, 0px);z-index:9;background:color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:20px;min-height:64px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);font:700 22px/1 var(--display);margin-right:auto;white-space:nowrap}
+.nav{display:flex;gap:22px}
+.nav a{color:var(--muted);text-decoration:none;font-weight:500;font-size:15px}
+.nav a:hover{color:var(--ink)}
+.lang{display:inline-flex;border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.lang button{font:600 13px/1 var(--body);letter-spacing:.06em;padding:8px 10px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.lang button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.top .btn{min-height:40px;padding:0 16px;font-size:15px}
+@media (max-width:820px){.nav{display:none}}
+@media (max-width:420px){.brand{font-size:19px}.top .wrap{gap:12px}}
+
+/* hero */
+.hero{padding-block:56px 40px}
+.hero .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:56px;align-items:center}
+.hero h1{font-size:clamp(44px,6.4vw,80px);margin-top:14px}
+.hero h1 em{font-style:normal;color:var(--wash)}
+.lede{margin-top:22px;font-size:19px;line-height:1.55;color:var(--muted);max-width:34em}
+.cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
+.small{margin-top:18px;font-size:14px;color:var(--muted)}
+@media (max-width:900px){.hero .wrap{grid-template-columns:minmax(0,1fr);gap:36px}.hero{padding-block:36px 28px}}
+
+/* camera feed */
+.feed{margin:0;min-width:0}
+.screen{position:relative;width:100%;max-width:100%;aspect-ratio:16/9;background:var(--feed-bg);border-radius:6px;overflow:hidden;
+  box-shadow:0 1px 0 var(--line),0 24px 60px -28px rgba(40,10,10,.5)}
+.screen canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.tally{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-top:0;
+  border-radius:0 0 6px 6px;overflow:hidden;margin-top:-6px;padding-top:6px}
+.tally div{background:var(--surface);padding:12px 14px}
+.tally b{display:block;font:500 24px/1.1 var(--mono);font-variant-numeric:tabular-nums}
+.tally span{font-size:13px;color:var(--muted)}
+.feed figcaption{margin-top:10px;font-size:13px;color:var(--muted)}
+
+/* facts strip */
+.facts{border-block:1px solid var(--line);background:var(--surface)}
+.facts .wrap{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.fact{padding:26px 24px 26px 0;display:grid;gap:6px;align-content:start}
+.fact + .fact{padding-left:24px;border-left:1px solid var(--line)}
+.fact h3{font-size:22px}
+.fact p{font-size:15px;color:var(--muted)}
+@media (max-width:900px){
+  .facts .wrap{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fact:nth-child(3){padding-left:0;border-left:0}
+  .fact:nth-child(n+3){border-top:1px solid var(--line)}
+}
+@media (max-width:520px){
+  .facts .wrap{grid-template-columns:minmax(0,1fr)}
+  .fact,.fact + .fact{padding:20px 0;border-left:0}
+  .fact + .fact{border-top:1px solid var(--line)}
+}
+
+/* sections */
+.sec{padding-block:88px}
+.sec-head{display:grid;gap:14px;max-width:44em;margin-bottom:44px}
+.sec-head h2{font-size:clamp(34px,4.4vw,52px)}
+.sec-head p{font-size:18px;color:var(--muted)}
+@media (max-width:640px){.sec{padding-block:60px}}
+
+/* how it works: a real sequence */
+.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:28px;counter-reset:step}
+.steps li{counter-increment:step;display:grid;gap:10px;align-content:start;padding-top:18px;border-top:3px solid var(--ink);min-width:0}
+.steps li::before{content:"Step " counter(step);font:500 13px/1 var(--mono);color:var(--muted);letter-spacing:.04em}
+html[lang="id"] .steps li::before{content:"Langkah " counter(step)}
+.steps h3{font-size:25px}
+.steps p{color:var(--muted);font-size:15.5px}
+.steps li:nth-child(2){border-top-color:var(--zone)}
+.steps li:last-child{border-top-color:var(--wash)}
+@media (max-width:980px){.steps{grid-template-columns:repeat(2,minmax(0,1fr));gap:36px 28px}}
+@media (max-width:560px){.steps{grid-template-columns:minmax(0,1fr)}}
+
+/* report preview */
+.report{background:var(--surface);border-block:1px solid var(--line)}
+.sheet{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px}
+@media (max-width:900px){.sheet{grid-template-columns:minmax(0,1fr)}}
+.panel{border:1px solid var(--line);border-radius:4px;background:var(--bg);padding:22px;min-width:0;display:grid;gap:16px;align-content:start}
+.panel-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.panel-h h3{font-size:22px}
+.chip{font:600 12px/1 var(--body);letter-spacing:.05em;text-transform:uppercase;padding:5px 8px;border-radius:2px;background:var(--zone-soft);color:var(--zone-ink);white-space:nowrap}
+.big{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.big b{font:500 64px/1 var(--mono);font-variant-numeric:tabular-nums;color:var(--wash);letter-spacing:-.03em}
+.big span{font:600 22px/1.2 var(--display);max-width:14em}
+.sub{color:var(--muted);font-size:15px}
+.bars{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));column-gap:10px;font:500 12px/1 var(--mono);font-variant-numeric:tabular-nums}
+.bars .col{height:128px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;border-bottom:1px solid var(--line)}
+.bars .col i{display:block;width:64%;background:var(--wash);border-radius:2px 2px 0 0}
+.bars .v{color:var(--ink)}
+.bars .d{text-align:center;color:var(--muted);padding-top:8px}
+
+.heat{display:grid;grid-template-columns:40px repeat(12,minmax(0,1fr));gap:3px;font:500 11px/1 var(--mono);color:var(--muted)}
+.heat i{display:block;aspect-ratio:1;border-radius:2px;background:color-mix(in srgb, var(--wash) var(--p), var(--surface))}
+.heat .rl{align-self:center}
+.heat .cl{text-align:center;padding-top:4px}
+.legend{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.legend .ramp{width:110px;height:10px;border-radius:2px;background:linear-gradient(90deg,var(--surface),var(--wash));border:1px solid var(--line)}
+
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:4px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:420px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font:600 12px/1.2 var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--bg)}
+tr:last-child td{border-bottom:0}
+td.mono{font-size:13.5px}
+.plate{font:500 13px/1 var(--mono);padding:4px 7px;border:1.5px solid var(--ink);border-radius:3px;letter-spacing:.04em;display:inline-block}
+.plate.none{border-color:var(--line);color:var(--muted)}
+.pill{font:600 12px/1 var(--body);padding:5px 9px;border-radius:99px;display:inline-block}
+.pill.w{background:var(--wash-soft);color:var(--wash)}
+.pill.o{background:transparent;color:var(--off);border:1px solid var(--line)}
+.full{grid-column:1/-1}
+
+.tabs{display:flex;flex-wrap:wrap;gap:10px 28px;margin-top:40px;padding-top:28px;border-top:1px solid var(--line)}
+.tabs div{display:grid;gap:4px;min-width:0;flex:1 1 200px}
+.tabs b{font:700 20px/1.1 var(--display)}
+.tabs span{color:var(--muted);font-size:15px}
+
+/* privacy */
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:56px;align-items:start}
+@media (max-width:900px){.split{grid-template-columns:minmax(0,1fr);gap:32px}}
+.checks{list-style:none;margin:0;padding:0;display:grid;border-bottom:1px solid var(--line)}
+.checks li{padding-block:18px;border-top:1px solid var(--line)}
+.checks b{display:block;font:700 21px/1.2 var(--display);margin-bottom:4px}
+.checks span{color:var(--muted);font-size:15.5px}
+
+/* faq */
+.faq{display:grid;gap:0;border-top:1px solid var(--line)}
+.faq details{border-bottom:1px solid var(--line)}
+.faq summary{cursor:pointer;list-style:none;padding:20px 40px 20px 0;position:relative;font:700 22px/1.25 var(--display)}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"";position:absolute;right:6px;top:50%;width:12px;height:12px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-70%) rotate(45deg);transition:transform .2s}
+.faq details[open] summary::after{transform:translateY(-30%) rotate(-135deg)}
+.faq p{padding:0 0 22px;color:var(--muted);max-width:44em}
+
+/* closing band */
+.close{background:var(--wash);color:var(--wash-ink)}
+.close .btn.primary,.close .btn.primary:hover{background:var(--surface);border-color:var(--surface);color:var(--wash);filter:none}
+.close .btn.primary:hover{transform:translateY(-1px)}
+.close :focus-visible{outline-color:var(--wash-ink)}
+.close .wrap{padding-block:72px;display:flex;align-items:center;justify-content:space-between;gap:28px;flex-wrap:wrap}
+.close h2{font-size:clamp(34px,4.6vw,56px);max-width:13em}
+.close p{margin-top:12px;opacity:.75;font-size:17px;max-width:34em}
+.close .btn.primary{min-height:54px;padding:0 26px;font-size:17px}
+footer{padding-block:28px;color:var(--muted);font-size:14px}
+footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+@media (prefers-reduced-motion: no-preference){
+  .rise{animation:rise .7s cubic-bezier(.2,.7,.2,1) both}
+  .rise.d2{animation-delay:.08s}.rise.d3{animation-delay:.16s}.rise.d4{animation-delay:.24s}
+  @keyframes rise{from{transform:translateY(10px)}to{transform:none}}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Wash Mat Report">
+      <span data-i18n="brand">Wash Mat Report</span>
+    </a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#how" data-i18n="navHow">How it works</a>
+      <a href="#report" data-i18n="navReport">The report</a>
+      <a href="#faq" data-i18n="navFaq">Questions</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" id="langEn" data-lang="en" aria-pressed="true">EN</button>
+      <button type="button" id="langId" data-lang="id" aria-pressed="false">ID</button>
+    </div>
+    <a class="btn primary js-signin" href="https://wash-mat-report.vercel.app/" data-i18n="signIn">Sign in</a>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="wrap">
+      <div>
+        <p class="eyebrow rise" data-i18n="eyebrow">For motorbike wash shops</p>
+        <h1 class="rise d2"><span data-i18n="h1a">Every bike on your wash mats,</span> <em data-i18n="h1b">counted.</em></h1>
+        <p class="lede rise d3" data-i18n="lede">Your CCTV camera already sees every motorbike. We turn that picture into a report: how many bikes were washed, when they came, how long each one stayed, and its number plate when it can be read.</p>
+        <div class="cta rise d4">
+          <a class="btn primary js-signin" href="https://wash-mat-report.vercel.app/">
+            <span data-i18n="ctaSignIn">Sign in to your report</span>
+          </a>
+          <a class="btn" href="#how" data-i18n="ctaHow">See how it works</a>
+        </div>
+        <p class="small rise d4">
+          <span data-i18n="smallNote">Works with the cameras you already watch in the DMSS app. No new hardware at your shop.</span>
+        </p>
+      </div>
+
+      <figure class="feed">
+        <div class="screen"><canvas id="cam" data-src="landing-hero.jpg" aria-label="A shop camera view: two motorbikes on the wash mats, each boxed with its ID, plate and time on the mat, and one bike washed outside the mats." role="img"></canvas></div>
+        <div class="tally" aria-live="off">
+          <div><b id="tWash" class="num">23</b><span data-i18n="tWash">washes today</span></div>
+          <div><b id="tNow" class="num">2</b><span data-i18n="tNow">on the mats now</span></div>
+          <div><b id="tAvg" class="num">7m 40s</b><span data-i18n="tAvg">average stay</span></div>
+        </div>
+        <figcaption data-i18n="caption">A real frame from a shop camera, with faces and plates blurred. Yellow outlines are the wash mats. Each blue box is one bike on a mat, with its ID, plate and time so far. The grey box is a bike outside the mats, so it is not counted as a wash.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="facts" aria-label="At a glance">
+    <div class="wrap">
+      <div class="fact"><h3 data-i18n="f1h">No new hardware</h3><p data-i18n="f1p">It uses the camera you already have.</p></div>
+      <div class="fact"><h3 data-i18n="f2h">Nothing to install</h3><p data-i18n="f2p">No computer or app at your shop. The report opens in your phone's browser.</p></div>
+      <div class="fact"><h3 data-i18n="f3h">Only your shop</h3><p data-i18n="f3p">Your login shows your shop's visits and nobody else's.</p></div>
+      <div class="fact"><h3 data-i18n="f4h">Get daily reports</h3><p data-i18n="f4p">Each day's washes, stay times and busy hours, ready whenever you open it.</p></div>
+    </div>
+  </section>
+
+  <section class="sec" id="how">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow" data-i18n="howEye">How it works</p>
+        <h2 data-i18n="howH">You keep washing bikes. The camera keeps count.</h2>
+        <p data-i18n="howP">We do the setup. After that there is nothing for you or your staff to press.</p>
+      </div>
+      <ol class="steps">
+        <li><h3 data-i18n="s1h">We connect to your camera</h3><p data-i18n="s1p">We play your camera's live view on our side: the same picture you see in the DMSS app.</p></li>
+        <li><h3 data-i18n="s2h">We mark your wash mats</h3><p data-i18n="s2p">Each mat becomes a zone. A bike that stops on a zone counts as a wash. A bike parked anywhere else counts as off the mats.</p></li>
+        <li><h3 data-i18n="s3h">Every bike is logged</h3><p data-i18n="s3p">Arrival time, departure time, time on the mat, colour, and the plate when it can be read. A bike that comes back within 30 minutes stays one visit.</p></li>
+        <li><h3 data-i18n="s4h">You open your report</h3><p data-i18n="s4p">On your phone, any time of day. Sign in with Google or with the email and password we give you.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="sec report" id="report">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow" data-i18n="repEye">The report</p>
+        <h2 data-i18n="repH">See your week in one screen.</h2>
+        <p data-i18n="repP">Pick today, the last 7 days, the last 30 days or your own dates. Everything below comes from the same visits.</p>
+      </div>
+
+      <div class="sheet">
+        <div class="panel">
+          <div class="panel-h"><h3 data-i18n="pSum">Summary</h3><span class="chip" data-i18n="example">Example data</span></div>
+          <div class="big"><b class="num" id="weekTotal">45</b><span data-i18n="weekWashes">washes in the last 7 days</span></div>
+          <p class="sub" data-i18n="weekSub">6 bikes parked off the mats, 51 bikes seen in total.</p>
+          <div class="bars" id="bars" aria-label="Washes per day, example"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-h"><h3 data-i18n="pHours">Busy hours</h3><span class="chip" data-i18n="example">Example data</span></div>
+          <p class="sub"><span data-i18n="busiest">Busiest hour:</span> <b class="num" style="color:var(--ink)">16:00</b></p>
+          <div class="heat" id="heat" aria-label="Arrivals by hour and weekday, example"></div>
+          <div class="legend"><span data-i18n="fewer">Fewer</span><span class="ramp"></span><span data-i18n="more">More</span></div>
+        </div>
+
+        <div class="panel full">
+          <div class="panel-h"><h3 data-i18n="pLog">Visit log</h3><span class="chip" data-i18n="example">Example data</span></div>
+          <div class="tw">
+            <table>
+              <thead><tr>
+                <th data-i18n="cDate">Date</th><th data-i18n="cIn">In</th><th data-i18n="cOut">Out</th><th data-i18n="cStay">Stay</th><th data-i18n="cZone">Zone</th><th data-i18n="cType">Type</th>
+              </tr></thead>
+              <tbody>
+                <tr><td class="mono">18-11</td><td class="mono">14:02</td><td class="mono">14:09</td><td class="mono">7m 12s</td><td><span data-i18n="zone">Zone</span> 1</td><td><span class="pill w" data-i18n="wash">Wash</span></td></tr>
+                <tr><td class="mono">18-11</td><td class="mono">13:48</td><td class="mono">13:55</td><td class="mono">6m 40s</td><td><span data-i18n="zone">Zone</span> 2</td><td><span class="pill w" data-i18n="wash">Wash</span></td></tr>
+                <tr><td class="mono">18-11</td><td class="mono">13:41</td><td class="mono">13:44</td><td class="mono">2m 51s</td><td class="sub" data-i18n="noZone">No zone</td><td><span class="pill o" data-i18n="offMats">Off mats</span></td></tr>
+                <tr><td class="mono">18-11</td><td class="mono">13:30</td><td class="mono">13:42</td><td class="mono">11m 58s</td><td><span data-i18n="zone">Zone</span> 3</td><td><span class="pill w" data-i18n="wash">Wash</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="sub" data-i18n="logNote">Search by plate, show washes only, or export the list as a CSV file for your own records.</p>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <div><b data-i18n="t1">Timeline</b><span data-i18n="t1p">Every visit drawn across the day, mat by mat.</span></div>
+        <div><b data-i18n="t2">Stay times</b><span data-i18n="t2p">How long bikes stay, from under 3 minutes to 40 or more.</span></div>
+        <div><b data-i18n="t3">Present now</b><span data-i18n="t3p">Which bikes are at your shop at this moment.</span></div>
+        <div><b data-i18n="t4">Weekly report</b><span data-i18n="t4p">A one-page A4 summary of the week, ready to print or save as a PDF.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="privacy">
+    <div class="wrap split">
+      <div class="sec-head" style="margin-bottom:0">
+        <p class="eyebrow" data-i18n="privEye">Your data</p>
+        <h2 data-i18n="privH">Your numbers are yours.</h2>
+        <p data-i18n="privP">Each shop gets its own login. Nobody else's report can open your shop, and yours can't open theirs.</p>
+      </div>
+      <ul class="checks">
+        <li><div><b data-i18n="c1b">One shop per login</b><span data-i18n="c1s">Your account is tied to your shop. The report only reads that shop's visits.</span></div></li>
+        <li><div><b data-i18n="c2b">Google or email sign-in</b><span data-i18n="c2s">Use your Google account, or the email and password we set up for you.</span></div></li>
+        <li><div><b data-i18n="c3b">Read it, don't run it</b><span data-i18n="c3s">The counting runs on our side. Your camera and DVR settings stay as they are.</span></div></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="sec report" id="faq">
+    <div class="wrap">
+      <div class="sec-head"><p class="eyebrow" data-i18n="faqEye">Questions</p><h2 data-i18n="faqH">Before you ask</h2></div>
+      <div class="faq">
+        <details><summary data-i18n="q1">Do I need a new camera?</summary><p data-i18n="a1">No. If you can watch your wash area in the DMSS app today, we can count from that camera. It should see the whole of each mat from above or from the side.</p></details>
+        <details><summary data-i18n="q2">Does it read every number plate?</summary><p data-i18n="a2">No. It reads a plate when the camera sees it clearly enough. A bike whose plate can't be read is still counted, with its colour and times.</p></details>
+        <details><summary data-i18n="q3">What counts as a wash?</summary><p data-i18n="a3">A bike that stops inside one of your mat zones. A bike that parks outside the zones is listed as off the mats, so it doesn't inflate your wash count.</p></details>
+        <details><summary data-i18n="q4">How do I get a login?</summary><p data-i18n="a4">We create it when we set up your shop. You get an email and password, or we add your Google account. Then press Sign in on this page.</p></details>
+        <details><summary data-i18n="q5">Which languages does the report have?</summary><p data-i18n="a5">English and Bahasa Indonesia. Switch at the top of the report at any time.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="close">
+    <div class="wrap">
+      <div>
+        <h2 data-i18n="closeH">Your shop's numbers are waiting.</h2>
+        <p data-i18n="closeP">Already set up? Sign in with the account we gave you.</p>
+      </div>
+      <a class="btn primary js-signin" href="https://wash-mat-report.vercel.app/">
+        <span data-i18n="ctaSignIn">Sign in to your report</span>
+      </a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span data-i18n="brand">Wash Mat Report</span>
+    <span data-i18n="foot">Motorbike wash counting from your CCTV.</span>
+  </div>
+</footer>
+
+<script>
+(() => {
+  /* Where "Sign in" goes: the report page, at /app on the same site (Firebase
+     Hosting). Opened straight from a file, it goes to the live one instead. */
+  const REPORT_URL = location.protocol === 'file:' ? 'https://pantau-gethyred.web.app/app' : '/app';
+  document.querySelectorAll('.js-signin').forEach(a => { a.href = REPORT_URL; });
+
+  /* ---------- text, English and Bahasa Indonesia ---------- */
+  const T = {
+    en: {},
+    id: {
+      brand: 'Laporan Cuci Motor', navHow: 'Cara kerja', navReport: 'Laporan', navFaq: 'Pertanyaan', signIn: 'Masuk',
+      eyebrow: 'Untuk usaha cuci motor', h1a: 'Setiap motor di area cuci Anda,', h1b: 'tercatat.',
+      lede: 'Kamera CCTV Anda sudah melihat setiap motor. Kami mengubah gambarnya menjadi laporan: berapa motor yang dicuci, kapan datang, berapa lama tiap motor, dan plat nomornya jika terbaca.',
+      ctaSignIn: 'Masuk ke laporan Anda', ctaHow: 'Lihat cara kerjanya',
+      smallNote: 'Bisa dipakai dengan kamera yang sudah Anda lihat di aplikasi DMSS. Tanpa alat baru di toko.',
+      tWash: 'motor dicuci hari ini', tNow: 'di area cuci sekarang', tAvg: 'rata-rata durasi',
+      caption: 'Gambar asli dari kamera toko, wajah dan plat disamarkan. Garis kuning adalah area cuci. Tiap kotak biru adalah satu motor di area cuci, dengan ID, plat, dan lamanya sejauh ini. Kotak abu-abu adalah motor di luar area cuci, jadi tidak dihitung sebagai cucian.',
+      f1h: 'Tanpa alat baru', f1p: 'Memakai kamera yang sudah Anda punya.',
+      f2h: 'Tidak perlu instal', f2p: 'Tanpa komputer atau aplikasi di toko. Laporan dibuka di browser HP.',
+      f3h: 'Hanya toko Anda', f3p: 'Akun Anda hanya menampilkan kunjungan toko Anda sendiri.',
+      f4h: 'Dapatkan laporan harian', f4p: 'Jumlah cucian, durasi, dan jam sibuk setiap hari, siap kapan pun Anda buka.',
+      howEye: 'Cara kerja', howH: 'Anda tetap mencuci motor. Kamera yang menghitung.',
+      howP: 'Kami yang memasang. Setelah itu, tidak ada yang perlu Anda atau karyawan tekan.',
+      s1h: 'Kami terhubung ke kamera Anda', s1p: 'Kami memutar tampilan langsung kamera Anda di sisi kami: gambar yang sama dengan yang Anda lihat di aplikasi DMSS.',
+      s2h: 'Kami tandai area cuci', s2p: 'Setiap alas cuci menjadi satu zona. Motor yang berhenti di zona dihitung sebagai cucian. Motor yang parkir di tempat lain dihitung di luar area cuci.',
+      s3h: 'Setiap motor tercatat', s3p: 'Waktu masuk, waktu keluar, lama di area cuci, warna, dan plat jika terbaca. Motor yang kembali dalam 30 menit tetap dihitung satu kunjungan.',
+      s4h: 'Anda buka laporannya', s4p: 'Dari HP, kapan saja. Masuk dengan Google atau dengan email dan kata sandi dari kami.',
+      repEye: 'Laporan', repH: 'Lihat minggu Anda dalam satu layar.',
+      repP: 'Pilih hari ini, 7 hari, 30 hari, atau tanggal sendiri. Semua di bawah ini berasal dari kunjungan yang sama.',
+      pSum: 'Ringkasan', example: 'Data contoh', weekWashes: 'motor dicuci dalam 7 hari terakhir',
+      weekSub: '6 motor parkir di luar area cuci, total 51 motor terdeteksi.',
+      pHours: 'Jam sibuk', busiest: 'Jam tersibuk:', fewer: 'Sepi', more: 'Ramai',
+      pLog: 'Riwayat kunjungan', cDate: 'Tanggal', cPlate: 'Plat', cColor: 'Warna', cIn: 'Masuk', cOut: 'Keluar', cStay: 'Durasi', cZone: 'Zona', cType: 'Jenis',
+      red: 'Merah', black: 'Hitam', white: 'Putih', blue: 'Biru', zone: 'Zona', wash: 'Cuci', offMats: 'Di luar area', noZone: 'Tanpa zona', unread: 'tidak terbaca',
+      logNote: 'Cari berdasarkan plat, tampilkan hanya yang dicuci, atau ekspor daftar sebagai file CSV untuk catatan Anda.',
+      t1: 'Linimasa', t1p: 'Setiap kunjungan digambar sepanjang hari, per area cuci.',
+      t2: 'Durasi', t2p: 'Berapa lama motor tinggal, dari di bawah 3 menit sampai 40 menit atau lebih.',
+      t3: 'Di lokasi sekarang', t3p: 'Motor mana saja yang ada di toko Anda saat ini.',
+      t4: 'Laporan mingguan', t4p: 'Ringkasan seminggu dalam satu halaman A4, siap dicetak atau disimpan sebagai PDF.',
+      privEye: 'Data Anda', privH: 'Angka Anda milik Anda.',
+      privP: 'Setiap toko punya akun sendiri. Laporan toko lain tidak bisa membuka toko Anda, dan sebaliknya.',
+      c1b: 'Satu toko per akun', c1s: 'Akun Anda terhubung ke toko Anda. Laporan hanya membaca kunjungan toko itu.',
+      c2b: 'Masuk dengan Google atau email', c2s: 'Pakai akun Google Anda, atau email dan kata sandi yang kami buatkan.',
+      c3b: 'Cukup dibaca', c3s: 'Penghitungan berjalan di sisi kami. Pengaturan kamera dan DVR Anda tidak diubah.',
+      faqEye: 'Pertanyaan', faqH: 'Yang sering ditanyakan',
+      q1: 'Apakah perlu kamera baru?', a1: 'Tidak. Jika hari ini Anda bisa melihat area cuci di aplikasi DMSS, kami bisa menghitung dari kamera itu. Kamera harus melihat seluruh alas cuci dari atas atau dari samping.',
+      q2: 'Apakah semua plat nomor terbaca?', a2: 'Tidak. Plat dibaca jika kamera melihatnya cukup jelas. Motor yang platnya tidak terbaca tetap dihitung, lengkap dengan warna dan waktunya.',
+      q3: 'Apa yang dihitung sebagai cucian?', a3: 'Motor yang berhenti di dalam salah satu zona area cuci. Motor yang parkir di luar zona dicatat sebagai di luar area cuci, jadi tidak menambah jumlah cucian.',
+      q4: 'Bagaimana cara dapat akun?', a4: 'Kami buatkan saat memasang toko Anda. Anda dapat email dan kata sandi, atau kami tambahkan akun Google Anda. Lalu tekan Masuk di halaman ini.',
+      q5: 'Laporan tersedia dalam bahasa apa?', a5: 'Bahasa Inggris dan Bahasa Indonesia. Ganti kapan saja di bagian atas laporan.',
+      closeH: 'Angka toko Anda sudah menunggu.', closeP: 'Sudah dipasang? Masuk dengan akun dari kami.',
+      foot: 'Penghitungan cuci motor dari CCTV Anda.'
+    }
+  };
+  const nodes = [...document.querySelectorAll('[data-i18n]')];
+  nodes.forEach(n => { if (!(n.dataset.i18n in T.en)) T.en[n.dataset.i18n] = n.textContent; });
+  let lang = 'en';
+  const setLang = l => {
+    lang = T[l] ? l : 'en';
+    document.documentElement.lang = lang;
+    nodes.forEach(n => { const k = n.dataset.i18n, s = k in T[lang] ? T[lang][k] : T.en[k]; if (s != null) n.textContent = s; });
+    document.querySelectorAll('.lang button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
+    drawBars(); drawHeat();
+    try { localStorage.setItem('wmr-lang', lang); } catch (e) {}
+  };
+  document.querySelectorAll('.lang button').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang)));
+
+  /* ---------- report preview: example numbers only ---------- */
+  const DAYS = { en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], id: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'] };
+  const WEEK = [5, 4, 6, 7, 6, 9, 8];
+  document.getElementById('weekTotal').textContent = WEEK.reduce((a, b) => a + b, 0);
+  function drawBars() {
+    const max = Math.max(...WEEK);
+    const cols = WEEK.map(v => `<div class="col"><span class="v">${v}</span><i style="height:${Math.round(100 * v / max)}px"></i></div>`).join('');
+    document.getElementById('bars').innerHTML = cols + DAYS[lang].map(d => `<span class="d">${d}</span>`).join('');
+  }
+  function drawHeat() {
+    const hours = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
+    let s = '';
+    DAYS[lang].forEach((d, di) => {
+      s += `<span class="rl">${d}</span>`;
+      hours.forEach(h => {
+        const morning = Math.exp(-((h - 10.5) ** 2) / 2.2), evening = Math.exp(-((h - 16.2) ** 2) / 1.6);
+        const weekend = di >= 5 ? 1.35 : 1, lull = h === 13 ? 0.6 : 1;
+        const v = Math.min(1, (0.12 + 0.55 * morning + 0.8 * evening) * weekend * lull * (0.85 + ((di * 7 + h * 3) % 5) * 0.05));
+        s += `<i style="--p:${Math.round(8 + v * 86)}%" title="${d} ${h}:00"></i>`;
+      });
+    });
+    s += '<span></span>' + hours.map(h => `<span class="cl">${h % 2 === 0 ? h : ''}</span>`).join('');
+    document.getElementById('heat').innerHTML = s;
+  }
+
+  let saved = null;
+  try { saved = localStorage.getItem('wmr-lang'); } catch (e) {}
+  if (!saved && /^id\b/i.test(navigator.language || '')) saved = 'id';
+  setLang(saved || 'en');
+
+  /* ---------- the camera feed: a real frame from a shop camera, with the detector's marks drawn live ---------- */
+  const cv = document.getElementById('cam'), ctx = cv.getContext('2d');
+  const VW = 1152, VH = 648;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const FEED = (() => { const cs = getComputedStyle(document.documentElement); const g = k => cs.getPropertyValue(k).trim();
+    return { bg: g('--feed-bg'), box: g('--feed-box'), zone: g('--feed-zone'), ink: g('--feed-ink'), off: '#b9c2ca' }; })();
+  const photo = new Image();
+  photo.onload = () => render(clock);
+  photo.src = cv.dataset.src;
+
+  // wash mats, traced on the photo
+  const ZONES = [
+    [[222, 430], [452, 426], [446, 648], [208, 648]],
+    [[596, 404], [772, 398], [858, 648], [622, 648]]
+  ];
+  // bikes in the frame; `since` = seconds already on the mat when the page opens
+  const BIKES = [
+    { id: 43, zone: 1, plate: 'Z 4821 KA', box: [262, 258, 442, 646], since: 222 },
+    { id: 44, zone: 2, plate: 'Z 3307 NB', box: [602, 300, 872, 646], since: 95 },
+    { id: 45, zone: 0, plate: '---', box: [536, 2, 668, 206], since: 0 }
+  ];
+  const fmt = s => `${Math.floor(s / 60)}m ${String(Math.floor(s % 60)).padStart(2, '0')}s`;
+  const ease = x => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3);
+
+  function label(x, top, bottom, lines, col) {
+    ctx.font = '500 17px "IBM Plex Mono", ui-monospace, Menlo, monospace';
+    const w = Math.max(...lines.map(l => ctx.measureText(l).width)) + 18, h = lines.length * 22 + 10;
+    const lx = Math.max(6, Math.min(VW - w - 6, x));
+    const ly = top - h - 4 < 72 ? bottom + 6 : top - h - 4;   // keep clear of the clock bar
+    ctx.fillStyle = 'rgba(8,12,16,.84)'; ctx.fillRect(lx, ly, w, h);
+    ctx.fillStyle = col; ctx.fillRect(lx, ly, 4, h);
+    ctx.fillStyle = FEED.ink; lines.forEach((l, k) => ctx.fillText(l, lx + 12, ly + 23 + k * 22));
+  }
+  function brackets(x1, y1, x2, y2, col, dashed) {
+    ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.setLineDash(dashed ? [9, 7] : []);
+    ctx.strokeRect(x1, y1, x2 - x1, y2 - y1); ctx.setLineDash([]);
+    const c = Math.min(26, (x2 - x1) / 4); ctx.lineWidth = 6; ctx.beginPath();
+    [[x1, y1, 1, 1], [x2, y1, -1, 1], [x1, y2, 1, -1], [x2, y2, -1, -1]].forEach(([x, y, dx, dy]) => {
+      ctx.moveTo(x + c * dx, y); ctx.lineTo(x, y); ctx.lineTo(x, y + c * dy); });
+    ctx.stroke();
+  }
+
+  function render(now) {
+    ctx.setTransform(cv.width / VW, 0, 0, cv.height / VH, 0, 0);
+    ctx.fillStyle = FEED.bg; ctx.fillRect(0, 0, VW, VH);
+    if (photo.complete && photo.naturalWidth) ctx.drawImage(photo, 0, 0, VW, VH);
+    const T = lang === 'id' ? { zone: 'Zona', off: 'Di luar area' } : { zone: 'Zone', off: 'Off mats' };
+    const pulse = reduce ? 0.5 : 0.5 + 0.5 * Math.sin(now * 2.4);
+
+    ZONES.forEach((p, zi) => {
+      const busy = BIKES.some(b => b.zone === zi + 1);
+      ctx.beginPath(); p.forEach(([x, y], k) => k ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.closePath();
+      ctx.fillStyle = `rgba(242,182,50,${busy ? 0.10 + 0.10 * pulse : 0.05})`; ctx.fill();
+      ctx.strokeStyle = FEED.zone; ctx.lineWidth = 3; ctx.stroke();
+      ctx.font = '600 17px "IBM Plex Sans", -apple-system, sans-serif';
+      const zt = `${T.zone} ${zi + 1}`, zw = ctx.measureText(zt).width + 16;
+      ctx.fillStyle = FEED.zone; ctx.fillRect(p[3][0], p[3][1] - 30, zw, 28);
+      ctx.fillStyle = '#1a1e21'; ctx.fillText(zt, p[3][0] + 8, p[3][1] - 10);
+    });
+
+    BIKES.forEach((b, k) => {
+      const a = reduce ? 1 : ease((now - 0.35 - k * 0.3) / 0.7);   // boxes lock on one after another
+      if (a <= 0) return;
+      const [x1, y1, x2, y2] = b.box, g = (1 - a) * 40;
+      ctx.globalAlpha = a;
+      const col = b.zone ? FEED.box : FEED.off;
+      brackets(x1 - g, y1 - g, x2 + g, y2 + g, col, !b.zone);
+      const l1 = `ID ${b.id} · ${b.zone ? `${T.zone} ${b.zone}` : T.off}`;
+      const l2 = b.zone ? `${b.plate} · ${fmt(b.since + now)}` : b.plate;
+      label(x1, y1, y2, [l1, l2], col);
+      ctx.globalAlpha = 1;
+    });
+
+    // camera overlay: these two boxes sit over the camera's own logo and date stamp
+    ctx.fillStyle = 'rgba(8,12,16,.9)'; ctx.fillRect(6, 10, 176, 60);
+    ctx.fillStyle = '#ff4d4d'; ctx.beginPath(); ctx.arc(30, 40, 7, 0, Math.PI * 2);
+    if (reduce || Math.floor(now * 1.2) % 2 === 0) ctx.fill();
+    ctx.font = '500 21px "IBM Plex Mono", ui-monospace, monospace'; ctx.fillStyle = FEED.ink; ctx.fillText('CAM 01', 48, 48);
+    const d = new Date(), p2 = n => String(n).padStart(2, '0');
+    const ts = `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`;
+    ctx.fillStyle = 'rgba(8,12,16,.9)'; ctx.fillRect(848, 10, 298, 60);
+    ctx.fillStyle = FEED.ink; ctx.fillText(ts, 864, 48);
+  }
+
+  function fit() {
+    const r = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
+    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+  }
+  fit();
+  let clock = 0, last = performance.now(), visible = true;
+  render(clock);
+  addEventListener('resize', () => { fit(); render(clock); });
+  if ('IntersectionObserver' in window) new IntersectionObserver(es => { visible = es[0].isIntersecting; }).observe(cv);
+  if (document.fonts) document.fonts.ready.then(() => render(clock));
+  document.querySelectorAll('.lang button').forEach(b => b.addEventListener('click', () => render(clock)));
+  if (!reduce) {
+    const loop = t => {
+      const dt = Math.min(0.1, (t - last) / 1000); last = t;
+      if (visible && !document.hidden) { clock += dt; render(clock); }
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  } else {
+    setInterval(() => { clock += 1; render(clock); }, 1000);
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "hosting": {
+    "public": "build",
+    "predeploy": "rm -rf build && mkdir build && cp -R css js landing-hero.jpg build/ && cp landing.html build/index.html && cp index.html build/app.html",
+    "cleanUrls": true,
+    "ignore": ["**/.*", "**/.*/**"],
+    "headers": [
+      { "source": "**/*.@(html|js|css)", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+      { "source": "/", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+      { "source": "/app", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+    ]
+  }
+}
