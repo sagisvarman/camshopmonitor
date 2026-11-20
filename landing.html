@@ -132,7 +132,6 @@ html[lang="id"] .steps li::before{content:"Langkah " counter(step)}
 @media (max-width:560px){.steps{grid-template-columns:minmax(0,1fr)}}
 
 /* requirements: what the shop owner provides */
-.req-sec{border-top:1px solid var(--line)}
 .reqs{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:36px 28px;counter-reset:req}
 .reqs li{counter-increment:req;display:grid;gap:8px;align-content:start;padding-top:16px;border-top:1px solid var(--line);min-width:0}
 .req-tag{font:500 13px/1 var(--mono);color:var(--muted);letter-spacing:.04em}
@@ -185,13 +184,6 @@ td.mono{font-size:13.5px}
 .tabs b{font:700 20px/1.1 var(--display)}
 .tabs span{color:var(--muted);font-size:15px}
 
-/* privacy */
-.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:56px;align-items:start}
-@media (max-width:900px){.split{grid-template-columns:minmax(0,1fr);gap:32px}}
-.checks{list-style:none;margin:0;padding:0;display:grid;border-bottom:1px solid var(--line)}
-.checks li{padding-block:18px;border-top:1px solid var(--line)}
-.checks b{display:block;font:700 21px/1.2 var(--display);margin-bottom:4px}
-.checks span{color:var(--muted);font-size:15.5px}
 
 /* faq */
 .faq{display:grid;gap:0;border-top:1px solid var(--line)}
@@ -257,7 +249,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
           <a class="btn" href="#how" data-i18n="ctaHow">See how it works</a>
         </div>
         <p class="small rise d4">
-          <span data-i18n="smallNote">Works with the cameras you already watch in the DMSS app. No new hardware at your shop.</span>
+          <span data-i18n="smallNote">Works with the cameras you already have. No new hardware at your shop.</span>
         </p>
       </div>
 
@@ -290,7 +282,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
         <p data-i18n="howP">We do the setup. After that there is nothing for you or your staff to press.</p>
       </div>
       <ol class="steps">
-        <li><h3 data-i18n="s1h">We connect to your camera</h3><p data-i18n="s1p">We play your camera's live view on our side: the same picture you see in the DMSS app.</p></li>
+        <li><h3 data-i18n="s1h">We connect to your camera</h3><p data-i18n="s1p">We play your camera's live view on our side: the same picture you see on your phone.</p></li>
         <li><h3 data-i18n="s2h">We mark your wash mats</h3><p data-i18n="s2p">Each mat becomes a zone. A bike that stops on a zone counts as a wash. A bike parked anywhere else counts as off the mats.</p></li>
         <li><h3 data-i18n="s3h">Every bike is logged</h3><p data-i18n="s3p">Arrival time, departure time, time on the mat, colour, and the plate when it can be read. A bike that comes back within 30 minutes stays one visit.</p></li>
         <li><h3 data-i18n="s4h">You open your report</h3><p data-i18n="s4p">On your phone, any time of day. Sign in with Google or with the email and password we give you.</p></li>
@@ -349,22 +341,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
     </div>
   </section>
 
-  <section class="sec" id="privacy">
-    <div class="wrap split">
-      <div class="sec-head" style="margin-bottom:0">
-        <p class="eyebrow" data-i18n="privEye">Your data</p>
-        <h2 data-i18n="privH">Your numbers are yours.</h2>
-        <p data-i18n="privP">Each shop gets its own login. Nobody else's report can open your shop, and yours can't open theirs.</p>
-      </div>
-      <ul class="checks">
-        <li><div><b data-i18n="c1b">One shop per login</b><span data-i18n="c1s">Your account is tied to your shop. The report only reads that shop's visits.</span></div></li>
-        <li><div><b data-i18n="c2b">Google sign-in</b><span data-i18n="c2s">Everyone signs in with their own Google account. We add the accounts for your shop.</span></div></li>
-        <li><div><b data-i18n="c3b">Read it, don't run it</b><span data-i18n="c3s">The counting runs on our side. Your camera and DVR settings stay as they are.</span></div></li>
-      </ul>
-    </div>
-  </section>
-
-  <section class="sec req-sec" id="needs">
+  <section class="sec" id="needs">
     <div class="wrap">
       <div class="sec-head">
         <p class="eyebrow" data-i18n="reqEye">Before we start</p>
@@ -372,11 +349,10 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
         <p data-i18n="reqP">Most shops already have all of it. We go through it with you when we set up your shop.</p>
       </div>
       <ol class="reqs">
-        <li><span class="req-tag" data-i18n="gCam">Camera</span><h3 data-i18n="r1b">A camera you can watch in DMSS</h3><p data-i18n="r1s">We count from the camera you already use. You share access with us in the app.</p></li>
+        <li><span class="req-tag" data-i18n="gCam">Camera</span><h3 data-i18n="r1b">A CCTV camera at your wash area</h3><p data-i18n="r1s">We count from the camera you already use. You share access with us from its app.</p></li>
         <li><span class="req-tag" data-i18n="gCam">Camera</span><h3 data-i18n="r2b">It doesn't turn or move</h3><p data-i18n="r2s">We mark your mats on the camera's picture. If the camera is moved, tell us and we mark them again.</p></li>
         <li><span class="req-tag" data-i18n="gCam">Camera</span><h3 data-i18n="r3b">The whole of each mat in view</h3><p data-i18n="r3s">Not blocked by poles, hoses or signs. From above or from the side.</p></li>
         <li><span class="req-tag" data-i18n="gCam">Camera</span><h3 data-i18n="r4b">At least 2 MP (1080p), set to HD</h3><p data-i18n="r4s">Plates are small in the picture. On a low-quality stream they can't be read.</p></li>
-        <li><span class="req-tag" data-i18n="gCam">Camera</span><h3 data-i18n="r5b">Online while you're open</h3><p data-i18n="r5s">A steady internet connection at the shop. While the camera is offline, bikes aren't counted.</p></li>
         <li><span class="req-tag" data-i18n="gShop">Shop</span><h3 data-i18n="r6b">Keep the mats clear</h3><p data-i18n="r6s">Don't leave the pump, buckets or chairs on a mat. They can be counted as a bike.</p></li>
         <li><span class="req-tag" data-i18n="gShop">Shop</span><h3 data-i18n="r7b">Mats in place, lights on</h3><p data-i18n="r7s">Keep the mats where they are and the lights on while you're open: in the dark the camera turns black and white. Tell us your opening hours and how many mats you have.</p></li>
         <li><span class="req-tag" data-i18n="gTeam">Team</span><h3 data-i18n="r8b">A Google account for each person</h3><p data-i18n="r8s">Everyone who reads the report signs in with Google. Send us their Gmail addresses.</p></li>
@@ -388,7 +364,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
     <div class="wrap">
       <div class="sec-head"><p class="eyebrow" data-i18n="faqEye">Questions</p><h2 data-i18n="faqH">Before you ask</h2></div>
       <div class="faq">
-        <details><summary data-i18n="q1">Do I need a new camera?</summary><p data-i18n="a1">No. If you can watch your wash area in the DMSS app today, we can count from that camera. It should see the whole of each mat from above or from the side.</p></details>
+        <details><summary data-i18n="q1">Do I need a new camera?</summary><p data-i18n="a1">No. If you can watch your wash area on your phone today, we can count from that camera. It should see the whole of each mat from above or from the side.</p></details>
         <details><summary data-i18n="q2">Does it read every number plate?</summary><p data-i18n="a2">No. It reads a plate when the camera sees it clearly enough. A bike whose plate can't be read is still counted, with its colour and times.</p></details>
         <details><summary data-i18n="q3">What counts as a wash?</summary><p data-i18n="a3">A bike that stops inside one of your mat zones. A bike that parks outside the zones is listed as off the mats, so it doesn't inflate your wash count.</p></details>
         <details><summary data-i18n="q4">How do I get a login?</summary><p data-i18n="a4">We set it up with your shop. Send us the Google account (Gmail) of each person who needs the report and we add them. Then press Sign in on this page.</p></details>
@@ -432,7 +408,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
       eyebrow: 'Untuk usaha cuci motor', h1a: 'Setiap motor di area cuci Anda,', h1b: 'tercatat.',
       lede: 'Kamera CCTV Anda sudah melihat setiap motor. Kami mengubah gambarnya menjadi laporan: berapa motor yang dicuci, kapan datang, berapa lama tiap motor, dan plat nomornya jika terbaca.',
       ctaSignIn: 'Masuk ke laporan Anda', ctaHow: 'Lihat cara kerjanya',
-      smallNote: 'Bisa dipakai dengan kamera yang sudah Anda lihat di aplikasi DMSS. Tanpa alat baru di toko.',
+      smallNote: 'Bisa dipakai dengan kamera yang sudah Anda punya. Tanpa alat baru di toko.',
       tWash: 'motor dicuci hari ini', tNow: 'di area cuci sekarang', tAvg: 'rata-rata durasi',
       caption: 'Gambar asli dari kamera toko, wajah dan plat disamarkan. Garis kuning adalah area cuci. Tiap kotak biru adalah satu motor di area cuci, dengan ID, plat, dan lamanya sejauh ini. Kotak abu-abu adalah motor di luar area cuci, jadi tidak dihitung sebagai cucian.',
       f1h: 'Tanpa alat baru', f1p: 'Memakai kamera yang sudah Anda punya.',
@@ -441,7 +417,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
       f4h: 'Dapatkan laporan harian', f4p: 'Jumlah cucian, durasi, dan jam sibuk setiap hari, siap kapan pun Anda buka.',
       howEye: 'Cara kerja', howH: 'Anda tetap mencuci motor. Kamera yang menghitung.',
       howP: 'Kami yang memasang. Setelah itu, tidak ada yang perlu Anda atau karyawan tekan.',
-      s1h: 'Kami terhubung ke kamera Anda', s1p: 'Kami memutar tampilan langsung kamera Anda di sisi kami: gambar yang sama dengan yang Anda lihat di aplikasi DMSS.',
+      s1h: 'Kami terhubung ke kamera Anda', s1p: 'Kami memutar tampilan langsung kamera Anda di sisi kami: gambar yang sama dengan yang Anda lihat di HP Anda.',
       s2h: 'Kami tandai area cuci', s2p: 'Setiap alas cuci menjadi satu zona. Motor yang berhenti di zona dihitung sebagai cucian. Motor yang parkir di tempat lain dihitung di luar area cuci.',
       s3h: 'Setiap motor tercatat', s3p: 'Waktu masuk, waktu keluar, lama di area cuci, warna, dan plat jika terbaca. Motor yang kembali dalam 30 menit tetap dihitung satu kunjungan.',
       s4h: 'Anda buka laporannya', s4p: 'Dari HP, kapan saja. Masuk dengan Google atau dengan email dan kata sandi dari kami.',
@@ -457,24 +433,18 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
       t2: 'Durasi', t2p: 'Berapa lama motor tinggal, dari di bawah 3 menit sampai 40 menit atau lebih.',
       t3: 'Di lokasi sekarang', t3p: 'Motor mana saja yang ada di toko Anda saat ini.',
       t4: 'Laporan mingguan', t4p: 'Ringkasan seminggu dalam satu halaman A4, siap dicetak atau disimpan sebagai PDF.',
-      privEye: 'Data Anda', privH: 'Angka Anda milik Anda.',
-      privP: 'Setiap toko punya akun sendiri. Laporan toko lain tidak bisa membuka toko Anda, dan sebaliknya.',
-      c1b: 'Satu toko per akun', c1s: 'Akun Anda terhubung ke toko Anda. Laporan hanya membaca kunjungan toko itu.',
-      c2b: 'Masuk dengan Google', c2s: 'Setiap orang masuk dengan akun Google sendiri. Kami tambahkan akunnya untuk toko Anda.',
-      c3b: 'Cukup dibaca', c3s: 'Penghitungan berjalan di sisi kami. Pengaturan kamera dan DVR Anda tidak diubah.',
       reqEye: 'Sebelum mulai', reqH: 'Yang kami perlukan dari Anda.',
       reqP: 'Kebanyakan toko sudah punya semuanya. Kami periksa bersama Anda saat memasang toko Anda.',
       gCam: 'Kamera', gShop: 'Toko', gTeam: 'Tim',
-      r1b: 'Kamera yang bisa dilihat di DMSS', r1s: 'Kami menghitung dari kamera yang sudah Anda pakai. Anda bagikan aksesnya ke kami lewat aplikasi.',
+      r1b: 'Kamera CCTV di area cuci', r1s: 'Kami menghitung dari kamera yang sudah Anda pakai. Anda bagikan aksesnya ke kami lewat aplikasinya.',
       r2b: 'Posisi kamera tetap', r2s: 'Alas cuci kami tandai di gambar kamera. Jika kamera bergeser, beri tahu kami agar kami tandai ulang.',
       r3b: 'Setiap alas cuci terlihat penuh', r3s: 'Tidak tertutup tiang, selang, atau papan. Dari atas atau dari samping.',
       r4b: 'Minimal 2 MP (1080p), mode HD', r4s: 'Plat nomor terlihat kecil di gambar. Dengan kualitas rendah, plat tidak bisa terbaca.',
-      r5b: 'Online selama toko buka', r5s: 'Internet stabil di toko. Selama kamera offline, motor tidak terhitung.',
       r6b: 'Alas cuci tetap kosong', r6s: 'Jangan tinggalkan pompa, ember, atau kursi di atas alas. Benda itu bisa terhitung sebagai motor.',
       r7b: 'Alas di tempatnya, lampu menyala', r7s: 'Biarkan alas di posisinya dan lampu menyala selama buka: saat gelap kamera jadi hitam putih. Beri tahu kami jam buka dan jumlah alas cuci Anda.',
       r8b: 'Akun Google untuk tiap orang', r8s: 'Setiap orang yang membaca laporan masuk dengan Google. Kirim alamat Gmail mereka ke kami.',
       faqEye: 'Pertanyaan', faqH: 'Yang sering ditanyakan',
-      q1: 'Apakah perlu kamera baru?', a1: 'Tidak. Jika hari ini Anda bisa melihat area cuci di aplikasi DMSS, kami bisa menghitung dari kamera itu. Kamera harus melihat seluruh alas cuci dari atas atau dari samping.',
+      q1: 'Apakah perlu kamera baru?', a1: 'Tidak. Jika hari ini Anda bisa melihat area cuci dari HP, kami bisa menghitung dari kamera itu. Kamera harus melihat seluruh alas cuci dari atas atau dari samping.',
       q2: 'Apakah semua plat nomor terbaca?', a2: 'Tidak. Plat dibaca jika kamera melihatnya cukup jelas. Motor yang platnya tidak terbaca tetap dihitung, lengkap dengan warna dan waktunya.',
       q3: 'Apa yang dihitung sebagai cucian?', a3: 'Motor yang berhenti di dalam salah satu zona area cuci. Motor yang parkir di luar zona dicatat sebagai di luar area cuci, jadi tidak menambah jumlah cucian.',
       q4: 'Bagaimana cara dapat akun?', a4: 'Kami siapkan saat memasang toko Anda. Kirim akun Google (Gmail) setiap orang yang perlu laporan, lalu kami tambahkan. Setelah itu tekan Masuk di halaman ini.',
