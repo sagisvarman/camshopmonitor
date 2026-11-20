@@ -140,6 +140,11 @@ html[lang="id"] .steps li::before{content:"Langkah " counter(step)}
 .reqs p{color:var(--muted);font-size:15px}
 @media (max-width:980px){.reqs{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:560px){.reqs{grid-template-columns:minmax(0,1fr);gap:28px}}
+.req-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:40px 56px}
+.req-group{display:grid;gap:20px;align-content:start;min-width:0}
+.req-gh{font-size:26px;padding-top:14px;border-top:3px solid var(--wash)}
+.req-groups .reqs{grid-template-columns:minmax(0,1fr);gap:28px}
+@media (max-width:760px){.req-groups{grid-template-columns:minmax(0,1fr)}}
 
 /* report preview */
 .report{background:var(--surface);border-block:1px solid var(--line)}
@@ -346,17 +351,24 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
       <div class="sec-head">
         <p class="eyebrow" data-i18n="reqEye">Before we start</p>
         <h2 data-i18n="reqH">What we need from you.</h2>
-        <p data-i18n="reqP">Most shops already have all of it. We go through it with you when we set up your shop.</p>
+        <p data-i18n="reqP">Already have a CCTV camera? Here is all we need. No camera yet? We sort it out for you.</p>
       </div>
-      <ol class="reqs">
-        <li><span class="req-tag" data-i18n="gCam">Camera</span><h3 data-i18n="r1b">A CCTV camera at your wash area</h3><p data-i18n="r1s">We count from the camera you already use. You share access with us from its app.</p></li>
-        <li><span class="req-tag" data-i18n="gCam">Camera</span><h3 data-i18n="r2b">It doesn't turn or move</h3><p data-i18n="r2s">We mark your mats on the camera's picture. If the camera is moved, tell us and we mark them again.</p></li>
-        <li><span class="req-tag" data-i18n="gCam">Camera</span><h3 data-i18n="r3b">The whole of each mat in view</h3><p data-i18n="r3s">Not blocked by poles, hoses or signs. From above or from the side.</p></li>
-        <li><span class="req-tag" data-i18n="gCam">Camera</span><h3 data-i18n="r4b">At least 2 MP (1080p), set to HD</h3><p data-i18n="r4s">Plates are small in the picture. On a low-quality stream they can't be read.</p></li>
-        <li><span class="req-tag" data-i18n="gShop">Shop</span><h3 data-i18n="r6b">Keep the mats clear</h3><p data-i18n="r6s">Don't leave the pump, buckets or chairs on a mat. They can be counted as a bike.</p></li>
-        <li><span class="req-tag" data-i18n="gShop">Shop</span><h3 data-i18n="r7b">Mats in place, lights on</h3><p data-i18n="r7s">Keep the mats where they are and the lights on while you're open: in the dark the camera turns black and white. Tell us your opening hours and how many mats you have.</p></li>
-        <li><span class="req-tag" data-i18n="gTeam">Team</span><h3 data-i18n="r8b">A Google account for each person</h3><p data-i18n="r8s">Everyone who reads the report signs in with Google. Send us their Gmail addresses.</p></li>
-      </ol>
+      <div class="req-groups">
+        <div class="req-group">
+          <h3 class="req-gh" data-i18n="hasCamH">You have a camera</h3>
+          <ol class="reqs">
+            <li><span class="req-tag" data-i18n="gCam">Camera</span><h3 data-i18n="rc1b">A fixed CCTV camera feed</h3><p data-i18n="rc1s">A camera at your wash area that doesn't turn or move, at least 2 MP (1080p) set to HD, with every mat in full view. You share access with us from its app.</p></li>
+            <li><span class="req-tag" data-i18n="gShop">Shop</span><h3 data-i18n="rc2b">Your shop layout</h3><p data-i18n="rc2s">Where your mats are, how many you have, and your opening hours. We mark the mats on the camera's picture.</p></li>
+          </ol>
+        </div>
+        <div class="req-group">
+          <h3 class="req-gh" data-i18n="noCamH">No camera yet</h3>
+          <ol class="reqs">
+            <li><span class="req-tag" data-i18n="gCam">Camera</span><h3 data-i18n="rn1b">We provide the camera</h3><p data-i18n="rn1s">We help you get a CCTV camera that suits your wash area, so you don't have to pick one.</p></li>
+            <li><span class="req-tag" data-i18n="gInstall">Installation</span><h3 data-i18n="rn2b">We install it for you</h3><p data-i18n="rn2s">Our team mounts the camera, sets it up and connects it to Pantau.</p></li>
+          </ol>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -433,15 +445,13 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
       t3: 'Di lokasi sekarang', t3p: 'Motor mana saja yang ada di toko Anda saat ini.',
       t4: 'Laporan mingguan', t4p: 'Ringkasan seminggu dalam satu halaman A4, siap dicetak atau disimpan sebagai PDF.',
       reqEye: 'Sebelum mulai', reqH: 'Yang kami perlukan dari Anda.',
-      reqP: 'Kebanyakan toko sudah punya semuanya. Kami periksa bersama Anda saat memasang toko Anda.',
-      gCam: 'Kamera', gShop: 'Toko', gTeam: 'Tim',
-      r1b: 'Kamera CCTV di area cuci', r1s: 'Kami menghitung dari kamera yang sudah Anda pakai. Anda bagikan aksesnya ke kami lewat aplikasinya.',
-      r2b: 'Posisi kamera tetap', r2s: 'Alas cuci kami tandai di gambar kamera. Jika kamera bergeser, beri tahu kami agar kami tandai ulang.',
-      r3b: 'Setiap alas cuci terlihat penuh', r3s: 'Tidak tertutup tiang, selang, atau papan. Dari atas atau dari samping.',
-      r4b: 'Minimal 2 MP (1080p), mode HD', r4s: 'Plat nomor terlihat kecil di gambar. Dengan kualitas rendah, plat tidak bisa terbaca.',
-      r6b: 'Alas cuci tetap kosong', r6s: 'Jangan tinggalkan pompa, ember, atau kursi di atas alas. Benda itu bisa terhitung sebagai motor.',
-      r7b: 'Alas di tempatnya, lampu menyala', r7s: 'Biarkan alas di posisinya dan lampu menyala selama buka: saat gelap kamera jadi hitam putih. Beri tahu kami jam buka dan jumlah alas cuci Anda.',
-      r8b: 'Akun Google untuk tiap orang', r8s: 'Setiap orang yang membaca laporan masuk dengan Google. Kirim alamat Gmail mereka ke kami.',
+      reqP: 'Sudah punya kamera CCTV? Ini saja yang kami perlukan. Belum punya kamera? Kami yang urus.',
+      gCam: 'Kamera', gShop: 'Toko', gInstall: 'Pemasangan',
+      hasCamH: 'Sudah punya kamera', noCamH: 'Belum punya kamera',
+      rc1b: 'Rekaman CCTV dari kamera tetap', rc1s: 'Kamera di area cuci yang tidak berputar atau bergeser, minimal 2 MP (1080p) mode HD, dan setiap alas cuci terlihat penuh. Anda bagikan aksesnya ke kami lewat aplikasinya.',
+      rc2b: 'Denah toko Anda', rc2s: 'Letak alas cuci, jumlahnya, dan jam buka toko. Alas cuci kami tandai di gambar kamera.',
+      rn1b: 'Kami sediakan kameranya', rn1s: 'Kami bantu carikan kamera CCTV yang cocok untuk area cuci Anda, jadi Anda tidak perlu memilih sendiri.',
+      rn2b: 'Kami pasangkan untuk Anda', rn2s: 'Tim kami memasang kamera, mengaturnya, dan menghubungkannya ke Pantau.',
       faqEye: 'Pertanyaan', faqH: 'Yang sering ditanyakan',
       q1: 'Apakah perlu kamera baru?', a1: 'Tidak. Jika hari ini Anda bisa melihat area cuci dari HP, kami bisa menghitung dari kamera itu. Kamera harus melihat seluruh alas cuci dari atas atau dari samping.',
       q2: 'Apakah semua plat nomor terbaca?', a2: 'Tidak. Plat dibaca jika kamera melihatnya cukup jelas. Motor yang platnya tidak terbaca tetap dihitung, lengkap dengan warna dan waktunya.',
