@@ -21,8 +21,10 @@ export const I18N = {
     stayBuckets: ['under 3m', '3 to 5m', '5 to 8m', '8 to 12m', '12 to 20m', '20 to 40m', '40m or more'],
 
     /* page text, by data-i18n and data-i18n-label */
-    title: 'Wash mat report', language: 'Language',
+    title: 'Pantau', language: 'Language',
     signInLead: 'Sign in to see motorbike detections and washes.', googleBtn: 'Sign in with Google',
+    authEyebrow: 'For motorbike wash shops', authH1a: 'Every bike on your wash mats,', authH1b: 'counted.',
+    authArtLead: 'Washes, arrival times and number plates, from the camera you already have.',
     orEmail: 'or use email and password', email: 'Email', password: 'Password', signIn: 'Sign in', signOut: 'Sign out',
     notAllowed: 'Not allowed', deniedPre: 'You are signed in as ',
     deniedPost: ', but this account is not on the access list. Ask the owner to add your email, then sign in again.',
@@ -189,8 +191,10 @@ export const I18N = {
       zones: 'Zona', feeds: 'Feed', now: 'Di lokasi sekarang', cctv: 'CCTV', weekly: 'Laporan' },
     stayBuckets: ['di bawah 3m', '3 sampai 5m', '5 sampai 8m', '8 sampai 12m', '12 sampai 20m', '20 sampai 40m', '40m atau lebih'],
 
-    title: 'Laporan cuci motor', language: 'Bahasa',
+    title: 'Pantau', language: 'Bahasa',
     signInLead: 'Masuk untuk melihat deteksi motor dan cucian.', googleBtn: 'Masuk dengan Google',
+    authEyebrow: 'Untuk usaha cuci motor', authH1a: 'Setiap motor di area cuci Anda,', authH1b: 'tercatat.',
+    authArtLead: 'Jumlah cucian, jam datang dan plat nomor, dari kamera yang sudah Anda punya.',
     orEmail: 'atau pakai email dan kata sandi', email: 'Email', password: 'Kata sandi', signIn: 'Masuk', signOut: 'Keluar',
     notAllowed: 'Tidak diizinkan', deniedPre: 'Anda masuk sebagai ',
     deniedPost: ', tetapi akun ini tidak ada di daftar akses. Minta pemilik menambahkan email Anda, lalu masuk lagi.',

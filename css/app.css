@@ -239,3 +239,50 @@ body.wk-mode #presets,body.wk-mode #customDates{display:none!important}
 .or{text-align:center;color:var(--muted);font-size:13px;margin:14px 0 2px}
 .msg{color:var(--bad);font-size:13px;min-height:20px;margin:10px 0 0}
 .card-lang{display:flex;justify-content:flex-end;margin:-10px -10px 8px 0}
+
+/* ---------- sign-in: white and red, like the landing page ---------- */
+.auth-split,#denied{--red:#d4141c;--red-dark:#b30f16;--a-ink:#1c1515;--a-muted:#645a5a;--a-line:#ebe4e4;
+  --a-display:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;
+  --a-body:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-family:var(--a-body);color:var(--a-ink)}
+.auth-split{min-height:100vh;min-height:100dvh;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);background:#fff}
+.auth-art{position:relative;display:flex;flex-direction:column;justify-content:space-between;padding:32px 40px;color:#fff;
+  background:linear-gradient(180deg,rgba(20,12,12,.55) 0%,rgba(20,12,12,.15) 35%,rgba(20,12,12,.85) 100%),
+  url("../landing-hero.jpg") center/cover no-repeat #1a1e21}
+.auth-brand{font:700 22px/1 var(--a-display);letter-spacing:.01em}
+.auth-copy{max-width:30em}
+.auth-copy h2{font:700 clamp(34px,4vw,54px)/1.05 var(--a-display);margin:10px 0 14px;text-wrap:balance}
+.auth-copy h2 em{font-style:normal;color:#ff4a52}
+.auth-copy p{margin:0;font-size:17px;line-height:1.55;color:rgba(255,255,255,.88)}
+.auth-eyebrow{font:600 13px/1.2 var(--a-body);letter-spacing:.12em;text-transform:uppercase;margin:0}
+.auth-copy .auth-eyebrow{color:rgba(255,255,255,.8)}
+.auth-side{position:relative;display:flex;align-items:center;justify-content:center;padding:72px 32px 40px}
+.auth-lang{position:absolute;top:24px;right:24px}
+.auth-form{width:min(380px,100%)}
+.auth-form .auth-eyebrow{color:var(--red)}
+.auth-form h1{font:700 40px/1.05 var(--a-display);margin:10px 0 10px}
+.auth-lead{color:var(--a-muted);font-size:16px;line-height:1.55;margin:0 0 28px}
+.auth-google{width:100%;min-height:50px;display:flex;align-items:center;justify-content:center;gap:12px;
+  font:600 16px/1 var(--a-body);border-radius:4px}
+.g-badge{display:grid;place-items:center;width:28px;height:28px;background:#fff;border-radius:3px}
+.auth-split .btn.primary,#denied .btn.primary{background:var(--red);border-color:var(--red);color:#fff}
+.auth-split .btn.primary:hover,#denied .btn.primary:hover{background:var(--red-dark);border-color:var(--red-dark)}
+.auth-split .btn:focus-visible,.auth-split .seg button:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.auth-split .seg,#denied .seg{border-color:var(--a-line);border-radius:3px}
+.auth-split .seg button,#denied .seg button{font:600 13px/1 var(--a-body);letter-spacing:.06em;padding:8px 12px;
+  background:#fff;color:var(--a-muted);border-right-color:var(--a-line)}
+.auth-split .seg button[aria-pressed=true],#denied .seg button[aria-pressed=true]{background:var(--red);color:#fff}
+.auth-split .msg{margin-top:14px}
+#denied .card{border-color:var(--a-line);border-top:4px solid var(--red)}
+#denied h1{font:700 28px/1.1 var(--a-display)}
+@media (max-width:820px){
+  .auth-split{grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr}
+  .auth-art{min-height:260px;padding:20px 16px 24px;
+    background:linear-gradient(180deg,rgba(20,12,12,.6) 0%,rgba(20,12,12,.55) 40%,rgba(20,12,12,.88) 100%),
+    url("../landing-hero.jpg") center/cover no-repeat #1a1e21}
+  .auth-copy h2{font-size:30px;margin:8px 0 8px}
+  .auth-copy p{font-size:15px}
+  .auth-side{flex-direction:column;align-items:stretch;justify-content:flex-start;gap:20px;padding:20px 16px 40px}
+  .auth-lang{position:static;align-self:flex-end}
+  .auth-form{width:100%}
+  .auth-form h1{font-size:32px}
+}

@@ -1,7 +1,7 @@
 <!doctype html>
 <!--
 =====================================================================
-WASH MAT REPORT: Firestore reporting page (static, no build step)
+PANTAU: Firestore reporting page (the wash mat report) (static, no build step)
 =====================================================================
 FILES
  index.html      the markup; css/app.css the styles
@@ -64,19 +64,36 @@ DATA
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
-<title>Wash mat report</title>
+<title>Pantau</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
 
-<div id="auth" class="center" hidden>
-  <div class="card">
-    <div class="card-lang"><div class="seg lang" role="group"></div></div>
-    <h1 data-i18n="title">Wash mat report</h1>
-    <p data-i18n="signInLead">Sign in to see motorbike detections and washes.</p>
-    <button class="btn primary" id="googleBtn" type="button" data-i18n="googleBtn">Sign in with Google</button>
-    <div class="msg" id="authMsg" role="alert"></div>
+<div id="auth" class="auth-split" hidden>
+  <div class="auth-art">
+    <div class="auth-brand" data-i18n="title">Pantau</div>
+    <div class="auth-copy">
+      <p class="auth-eyebrow" data-i18n="authEyebrow">For motorbike wash shops</p>
+      <h2><span data-i18n="authH1a">Every bike on your wash mats,</span> <em data-i18n="authH1b">counted.</em></h2>
+      <p data-i18n="authArtLead">Washes, arrival times and number plates, from the camera you already have.</p>
+    </div>
+  </div>
+  <div class="auth-side">
+    <div class="auth-lang"><div class="seg lang" role="group"></div></div>
+    <div class="auth-form">
+      <p class="auth-eyebrow" data-i18n="signIn">Sign in</p>
+      <h1 data-i18n="title">Pantau</h1>
+      <p class="auth-lead" data-i18n="signInLead">Sign in to see motorbike detections and washes.</p>
+      <button class="btn primary auth-google" id="googleBtn" type="button">
+        <span class="g-badge" aria-hidden="true"><svg viewBox="0 0 48 48" width="18" height="18"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.2l7.9 6.2C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.2C1 16.6 0 20.2 0 24s1 7.4 2.7 10.8l7.9-6.2z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.7-6c-2.2 1.5-5 2.3-8.2 2.3-6.2 0-11.5-4.1-13.4-9.9l-7.9 6.2C6.6 42.6 14.6 48 24 48z"/></svg></span>
+        <span data-i18n="googleBtn">Sign in with Google</span>
+      </button>
+      <div class="msg" id="authMsg" role="alert"></div>
+    </div>
   </div>
 </div>
 
@@ -91,7 +108,7 @@ DATA
 
 <div id="app" class="wrap" hidden>
   <header class="top">
-    <div class="brand" data-i18n="title">Wash mat report</div>
+    <div class="brand" data-i18n="title">Pantau</div>
     <span class="shop" id="shopName"></span>
     <select id="shopPick" aria-label="Shop" data-i18n-label="shop" hidden></select>
     <span class="tag" id="demoTag" data-i18n="demoData" hidden>Demo data</span>
